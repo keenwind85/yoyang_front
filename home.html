@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>맞춤 요양 상담 플랫폼</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    :root {
+      --main-color: #3b82f6;
+      --sub-color: #f1f5f9;
+      --footer-color: #f3f4f6;
+      --nav-height: 56px;
+      --bottom-nav-height: 60px;
+      --side-promo-width: 340px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Noto Sans KR', Arial, sans-serif;
+      background: #fff;
+      color: #222;
+      min-height: 100vh;
+      padding-bottom: var(--bottom-nav-height);
+    }
+    /* 상단 네비게이션 */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-height);
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      z-index: 100;
+      padding: 0 16px;
+    }
+    .navbar .logo {
+      font-weight: bold;
+      font-size: 1.3rem;
+      color: var(--main-color);
+      margin-right: 20px;
+    }
+    .navbar .search-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+    .navbar .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 100%;
+      font-size: 1rem;
+      padding: 4px 0;
+    }
+    .navbar .search-box i {
+      color: #888;
+      margin-left: 8px;
+    }
+    /* 좌측 홍보 영역 (PC/와이드) */
+    .side-promo {
+      display: none;
+      position: fixed;
+      top: var(--nav-height);
+      left: 0;
+      width: var(--side-promo-width);
+      height: calc(100vh - var(--nav-height));
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+      padding: 32px 24px;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+      z-index: 10;
+    }
+    .side-promo h2 {
+      color: var(--main-color);
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    .side-promo p {
+      color: #555;
+      font-size: 1.1rem;
+      margin-bottom: 24px;
+    }
+    .side-promo img {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    /* 메인 컨텐츠 래퍼 */
+    .main-wrapper {
+      margin-top: var(--nav-height);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      transition: max-width 0.2s;
+    }
+    @media (min-width: 1100px) {
+      .side-promo {
+        display: block;
+      }
+      .main-wrapper {
+        margin-left: calc(var(--side-promo-width) + 32px);
+        max-width: 600px;
+      }
+      body {
+        background: #fff;
+      }
+    }
+    /* 전문가 상담 배너 */
+    .consult-banner {
+      background: linear-gradient(90deg, #3b82f6 60%, #60a5fa 100%);
+      color: #fff;
+      border-radius: 18px;
+      margin: 24px 16px 16px 16px;
+      padding: 28px 20px 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .consult-banner .text {
+      z-index: 1;
+    }
+    .consult-banner h2 {
+      font-size: 1.25rem;
+      margin: 0 0 8px 0;
+      font-weight: 700;
+    }
+    .consult-banner p {
+      margin: 0 0 14px 0;
+      font-size: 1rem;
+      opacity: 0.95;
+    }
+    .consult-banner .btn {
+      background: #fff;
+      color: var(--main-color);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .consult-banner .btn:hover {
+      background: #e0e7ff;
+    }
+    .consult-banner .icon {
+      position: absolute;
+      right: 24px;
+      bottom: 10px;
+      z-index: 0;
+      animation: floatY 2.2s ease-in-out infinite alternate;
+    }
+    @keyframes floatY {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-12px); }
+    }
+    /* 스와이프 배너 */
+    .swiper-banner {
+      margin: 0 0 24px 0;
+      overflow: hidden;
+      position: relative;
+      height: 120px;
+    }
+    .swiper-track {
+      display: flex;
+      transition: transform 0.6s cubic-bezier(.4,0,.2,1);
+      will-change: transform;
+    }
+    .swiper-slide {
+      min-width: 100%;
+      box-sizing: border-box;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 500;
+      background: #f1f5f9;
+      border-radius: 14px;
+      margin-right: 12px;
+      height: 100px;
+      color: #333;
+      position: relative;
+    }
+    .swiper-pagination {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+    }
+    .swiper-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      transition: background 0.2s;
+    }
+    .swiper-dot.active {
+      background: var(--main-color);
+    }
+    /* 리스트 공통 */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 10px 16px;
+      color: #222;
+    }
+    .facility-list, .info-list {
+      margin: 0 0 24px 0;
+      padding: 0 16px;
+    }
+    .facility-item, .info-item {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .facility-item:hover, .info-item:hover {
+      box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+    }
+    .facility-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .facility-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .facility-meta {
+      font-size: 0.93rem;
+      color: #555;
+      margin-bottom: 2px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .facility-grade {
+      font-size: 0.93rem;
+      color: #3b82f6;
+      font-weight: 500;
+    }
+    .facility-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-left: 14px;
+      background: #e5e7eb;
+    }
+    .info-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-left: 14px;
+      background: #e5e7eb;
+    }
+    .info-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .info-title {
+      font-size: 1.02rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .info-meta {
+      font-size: 0.92rem;
+      color: #666;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    /* 푸터 */
+    footer {
+      background: var(--footer-color);
+      color: #888;
+      text-align: center;
+      font-size: 0.98rem;
+      padding: 24px 0 18px 0;
+      margin-top: 32px;
+    }
+    /* 하단 네비게이션 */
+    .bottom-nav {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: var(--bottom-nav-height);
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+    .bottom-nav .nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #888;
+      font-size: 0.93rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .bottom-nav .nav-btn.active,
+    .bottom-nav .nav-btn:hover {
+      color: var(--main-color);
+    }
+    .bottom-nav .nav-btn i {
+      font-size: 1.3rem;
+      margin-bottom: 2px;
+    }
+    @media (max-width: 600px) {
+      .main-wrapper {
+        padding: 0 0 32px 0;
+      }
+      .consult-banner {
+        margin: 20px 8px 12px 8px;
+        padding: 20px 12px 18px 12px;
+      }
+      .swiper-slide {
+        padding: 0 8px;
+      }
+      .facility-list, .info-list {
+        padding: 0 8px;
+      }
+      .section-title {
+        margin-left: 8px;
+      }
+    }
+    .navbar, .bottom-nav {
+      left: 0; right: 0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    @media (max-width: 1099px) {
+      .navbar, .bottom-nav {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 상단 네비게이션 -->
+  <nav class="navbar">
+    <div class="logo">요양플랫폼</div>
+    <div class="search-box">
+      <input type="text" placeholder="검색하기...">
+      <i class="fas fa-search"></i>
+    </div>
+  </nav>
+
+  <!-- 좌측 홍보 영역 (PC/와이드) -->
+  <aside class="side-promo">
+    <h2>맞춤 요양 상담</h2>
+    <p>전문가와 함께하는<br>안심 요양 서비스</p>
+    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" alt="홍보 이미지">
+    <p style="font-size:0.98rem; color:#3b82f6; font-weight:500;">지금 무료 상담받기!</p>
+  </aside>
+
+  <main class="main-wrapper">
+    <!-- 전문가 상담 배너 -->
+    <section class="consult-banner">
+      <div class="text">
+        <h2>전문가와 맞춤 요양 상담하기</h2>
+        <p>궁금한 점을 상담사에게 바로 문의하세요!</p>
+        <button class="btn">상담 신청하기</button>
+      </div>
+      <div class="icon">
+        <img src="https://cdn.pixabay.com/photo/2017/01/31/13/14/avatar-2026510_1280.png" alt="상담사 아이콘" width="64" height="64" style="animation: floatY 2.2s infinite alternate;">
+      </div>
+    </section>
+
+    <!-- 스와이프 배너 -->
+    <section class="swiper-banner">
+      <div class="swiper-track" id="swiperTrack">
+        <div class="swiper-slide" style="background:#e0e7ff;">배너 1: 신규 오픈 이벤트! 지금 가입하고 혜택 받으세요.</div>
+        <div class="swiper-slide" style="background:#fef9c3;">배너 2: 요양시설 입소 상담, 무료로 진행 중!</div>
+        <div class="swiper-slide" style="background:#f1f5f9;">배너 3: 전문가 칼럼, 최신 요양 트렌드 확인하기</div>
+      </div>
+      <div class="swiper-pagination" id="swiperPagination"></div>
+    </section>
+
+    <!-- 요양시설 리스트 -->
+    <h3 class="section-title">추천 요양시설</h3>
+    <section class="facility-list">
+      <div class="facility-item" onclick="location.href='find-facility.html'">
+        <div class="facility-info">
+          <div class="facility-title">행복한 요양원</div>
+          <div class="facility-meta">
+            <span>서울특별시 강남구</span>
+            <span>설립일: 2010-05-12</span>
+            <span class="facility-grade">A등급</span>
+          </div>
+        </div>
+        <img class="facility-thumb" src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=80&q=80" alt="요양시설 썸네일">
+      </div>
+      <div class="facility-item" onclick="location.href='find-facility.html'">
+        <div class="facility-info">
+          <div class="facility-title">편안한 실버하우스</div>
+          <div class="facility-meta">
+            <span>경기도 수원시</span>
+            <span>설립일: 2015-09-01</span>
+            <span class="facility-grade">B등급</span>
+          </div>
+        </div>
+        <img class="facility-thumb" src="https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=80&q=80" alt="요양시설 썸네일">
+      </div>
+      <div class="facility-item" onclick="location.href='find-facility.html'">
+        <div class="facility-info">
+          <div class="facility-title">사랑의 집</div>
+          <div class="facility-meta">
+            <span>부산광역시 해운대구</span>
+            <span>설립일: 2012-03-20</span>
+            <span class="facility-grade">A등급</span>
+          </div>
+        </div>
+        <img class="facility-thumb" src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=80&q=80" alt="요양시설 썸네일">
+      </div>
+      <div class="facility-item" onclick="location.href='find-facility.html'">
+        <div class="facility-info">
+          <div class="facility-title">늘푸른 요양센터</div>
+          <div class="facility-meta">
+            <span>대구광역시 달서구</span>
+            <span>설립일: 2018-11-10</span>
+            <span class="facility-grade">B등급</span>
+          </div>
+        </div>
+        <img class="facility-thumb" src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=80&q=80" alt="요양시설 썸네일">
+      </div>
+      <div class="facility-item" onclick="location.href='find-facility.html'">
+        <div class="facility-info">
+          <div class="facility-title">희망 실버타운</div>
+          <div class="facility-meta">
+            <span>인천광역시 남동구</span>
+            <span>설립일: 2016-07-15</span>
+            <span class="facility-grade">A등급</span>
+          </div>
+        </div>
+        <img class="facility-thumb" src="https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=80&q=80" alt="요양시설 썸네일">
+      </div>
+    </section>
+
+    <!-- 요양정보 콘텐츠 리스트 -->
+    <h3 class="section-title">요양정보 콘텐츠</h3>
+    <section class="info-list">
+      <div class="info-item" onclick="location.href='info-home.html'">
+        <div class="info-content">
+          <div class="info-title">요양급여 신청 방법</div>
+          <div class="info-meta">
+            <span>신청/절차</span>
+          </div>
+        </div>
+        <img class="info-thumb" src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=80&q=80" alt="요양정보 썸네일">
+      </div>
+      <div class="info-item" onclick="location.href='info-home.html'">
+        <div class="info-content">
+          <div class="info-title">노인장기요양보험 안내</div>
+          <div class="info-meta">
+            <span>보험</span>
+          </div>
+        </div>
+        <img class="info-thumb" src="https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=80&q=80" alt="요양정보 썸네일">
+      </div>
+      <div class="info-item" onclick="location.href='info-home.html'">
+        <div class="info-content">
+          <div class="info-title">요양시설 선택 체크리스트</div>
+          <div class="info-meta">
+            <span>시설선택</span>
+          </div>
+        </div>
+        <img class="info-thumb" src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=80&q=80" alt="요양정보 썸네일">
+      </div>
+      <div class="info-item" onclick="location.href='info-home.html'">
+        <div class="info-content">
+          <div class="info-title">요양비용 절감 팁</div>
+          <div class="info-meta">
+            <span>비용</span>
+          </div>
+        </div>
+        <img class="info-thumb" src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=80&q=80" alt="요양정보 썸네일">
+      </div>
+      <div class="info-item" onclick="location.href='info-home.html'">
+        <div class="info-content">
+          <div class="info-title">요양서비스 Q&A</div>
+          <div class="info-meta">
+            <span>Q&A</span>
+          </div>
+        </div>
+        <img class="info-thumb" src="https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=80&q=80" alt="요양정보 썸네일">
+      </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer>
+      &copy; 2024 맞춤 요양 상담 플랫폼. All rights reserved.
+    </footer>
+  </main>
+
+  <!-- 하단 네비게이션 -->
+  <nav class="bottom-nav">
+    <a href="home.html" class="nav-btn active">
+      <i class="fas fa-home"></i>
+      홈
+    </a>
+    <a href="map.html" class="nav-btn">
+      <i class="fas fa-hospital"></i>
+      시설찾기
+    </a>
+    <a href="info-home.html" class="nav-btn">
+      <i class="fas fa-book-open"></i>
+      요양정보
+    </a>
+    <a href="#" class="nav-btn">
+      <i class="fas fa-user"></i>
+      내정보
+    </a>
+  </nav>
+
+  <!-- 스와이프 배너 스크립트 -->
+  <script>
+    const slides = document.querySelectorAll('.swiper-slide');
+    const track = document.getElementById('swiperTrack');
+    const pagination = document.getElementById('swiperPagination');
+    let current = 0;
+    let timer;
+    function renderPagination() {
+      pagination.innerHTML = '';
+      for (let i = 0; i < slides.length; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'swiper-dot' + (i === current ? ' active' : '');
+        dot.addEventListener('click', () => goToSlide(i));
+        pagination.appendChild(dot);
+      }
+    }
+    function goToSlide(idx) {
+      current = idx;
+      track.style.transform = `translateX(-${100 * current}%)`;
+      renderPagination();
+      resetTimer();
+    }
+    function nextSlide() {
+      current = (current + 1) % slides.length;
+      goToSlide(current);
+    }
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(nextSlide, 5000);
+    }
+    renderPagination();
+    resetTimer();
+    // 스와이프(터치) 지원
+    let startX = 0;
+    track.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+    });
+    track.addEventListener('touchend', e => {
+      const endX = e.changedTouches[0].clientX;
+      if (endX - startX > 40) {
+        goToSlide((current - 1 + slides.length) % slides.length);
+      } else if (startX - endX > 40) {
+        goToSlide((current + 1) % slides.length);
+      }
+    });
+  </script>
+</body>
+</html> 
