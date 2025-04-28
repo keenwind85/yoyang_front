@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시설찾기</title>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <!-- 카카오 지도 API (YOUR_APP_KEY 부분을 실제 발급받은 JavaScript 키로 교체) -->
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=111c602d0e830ef83899bfab32a148e6&autoload=false&libraries=services"></script>
+  <style>
+    :root {
+      --side-promo-width: 340px;
+    }
+    .side-promo {
+      display: none;
+      position: fixed;
+      top: 56px;
+      left: 0;
+      width: var(--side-promo-width);
+      height: calc(100vh - 56px);
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+      padding: 32px 24px;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+      z-index: 10;
+    }
+    .side-promo h2 { color: #3b82f6; font-size: 1.5rem; margin-bottom: 16px; }
+    .side-promo p { color: #555; font-size: 1.1rem; margin-bottom: 24px; }
+    .side-promo img { width: 100%; border-radius: 12px; margin-bottom: 16px; }
+    .main-wrapper {
+      margin-top: 56px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      transition: max-width 0.2s;
+    }
+    @media (min-width: 1100px) {
+      .side-promo { display: block; }
+      .main-wrapper {
+        margin-left: calc(var(--side-promo-width) + 32px);
+        max-width: 600px;
+      }
+      body {
+        background: #fff;
+      }
+    }
+    body {
+      margin: 0;
+      font-family: 'Noto Sans KR', Arial, sans-serif;
+      background: #f8fafc;
+      color: #222;
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+    header, .bottom-nav {
+      left: 0; right: 0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    @media (max-width: 1099px) {
+      header, .bottom-nav {
+        max-width: 100%;
+      }
+    }
+    header {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      padding: 16px 0 8px 0;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #3b82f6;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 10;
+    }
+    #map-container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 60px - 56px); /* 60px: 하단 네비, 56px: header */
+      min-height: 400px;
+      background: #eee;
+    }
+    #map {
+      width: 100vw;
+      height: 100%;
+      border-radius: 0;
+      margin: 0;
+      box-shadow: none;
+    }
+    .filter-bar {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.10);
+      padding: 8px 12px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .filter-bar select {
+      font-size: 1rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #222;
+    }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      height: 60px;
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+    .bottom-nav .nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #888;
+      font-size: 0.93rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .bottom-nav .nav-btn.active,
+    .bottom-nav .nav-btn:hover {
+      color: #3b82f6;
+    }
+    .bottom-nav .nav-btn i {
+      font-size: 1.3rem;
+      margin-bottom: 2px;
+    }
+    @media (max-width: 600px) {
+      #map-container { height: calc(100vh - 60px - 56px); }
+      #map { height: 100%; }
+      .filter-bar { top: 8px; right: 8px; padding: 6px 8px; }
+    }
+    .facility-popup {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 75vh;
+      max-height: 600px;
+      background: #fff;
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.13);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(.4,1.4,.6,1);
+      overflow-y: auto;
+    }
+    .facility-popup.open {
+      display: flex;
+      transform: translateY(0);
+    }
+    .facility-popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 10px 20px;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .facility-popup-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    .facility-popup-close {
+      font-size: 1.5rem;
+      color: #888;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .facility-popup-content {
+      padding: 18px 20px 24px 20px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .facility-popup-row {
+      margin-bottom: 18px;
+    }
+    .facility-popup-label {
+      font-size: 1.05rem;
+      color: #888;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .facility-popup-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 4px;
+    }
+    .facility-popup-tag {
+      background: #e0e7ff;
+      color: #3b82f6;
+      border-radius: 12px;
+      padding: 3px 12px;
+      font-size: 0.98rem;
+      font-weight: 500;
+      display: inline-block;
+    }
+    @media (max-width: 600px) {
+      .facility-popup { height: 75vh; max-height: 90vh; }
+    }
+    .facility-popup-call-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.2s;
+    }
+    .facility-popup-call-btn:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <!-- 좌측 홍보 영역 (PC/와이드) -->
+  <aside class="side-promo">
+    <h2>맞춤 요양 상담</h2>
+    <p>전문가와 함께하는<br>안심 요양 서비스</p>
+    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" alt="홍보 이미지">
+    <p style="font-size:0.98rem; color:#3b82f6; font-weight:500;">지금 무료 상담받기!</p>
+  </aside>
+  <div class="main-wrapper">
+    <header>내 주변 요양시설 찾기</header>
+    <div id="map-container">
+      <div id="map"></div>
+      <div class="filter-bar">
+        <select id="sidoSelect"></select>
+        <select id="sigunguSelect"></select>
+      </div>
+    </div>
+    <div id="facilityPopup" class="facility-popup" style="display:none;"></div>
+  </div>
+  <!-- 하단 네비게이션 바 -->
+  <nav class="bottom-nav">
+    <a href="home.html" class="nav-btn">
+      <i class="fas fa-home"></i>
+      홈
+    </a>
+    <a href="map.html" class="nav-btn active">
+      <i class="fas fa-hospital"></i>
+      시설찾기
+    </a>
+    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
+      <i class="fas fa-book-open"></i>
+      요양정보
+    </a>
+    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
+      <i class="fas fa-user"></i>
+      내정보
+    </a>
+  </nav>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      kakao.maps.load(function() {
+        // Supabase 연결
+        const supabase = window.supabase.createClient('https://ecryblreqspjhmfpyjdn.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnlibHJlcXNwamhtZnB5amRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5ODgwMTcsImV4cCI6MjA1OTU2NDAxN30.6W-be268DsgQIbgJVk6PBzc-odeRO-cLFOzn7CRkgAw');
+
+        let map, userMarker, facilityMarkers = [], userLat = null, userLng = null, facilitiesData = [];
+        let geocoder = new kakao.maps.services.Geocoder();
+        let geocodeCache = {};
+
+        // 주소를 위경도로 변환 (캐싱)
+        function geocodeAddress(address) {
+          return new Promise((resolve, reject) => {
+            if (!address) return reject('주소 없음');
+            if (geocodeCache[address]) return resolve(geocodeCache[address]);
+            geocoder.addressSearch(address, function(result, status) {
+              if (status === kakao.maps.services.Status.OK) {
+                const latlng = { lat: parseFloat(result[0].y), lng: parseFloat(result[0].x) };
+                geocodeCache[address] = latlng;
+                resolve(latlng);
+              } else {
+                reject('Geocode 실패: ' + address);
+              }
+            });
+          });
+        }
+
+        // 두 좌표 간 거리 계산 (미터)
+        function getDistance(lat1, lng1, lat2, lng2) {
+          function toRad(x) { return x * Math.PI / 180; }
+          const R = 6371e3;
+          const φ1 = toRad(lat1), φ2 = toRad(lat2);
+          const Δφ = toRad(lat2-lat1), Δλ = toRad(lng2-lng1);
+          const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // address에서 시/도, 시/군/구 추출
+        function parseSidoSigungu(address) {
+          if (!address) return { sido: '', sigungu: '' };
+          const parts = address.split(' ');
+          let sido = '', sigungu = '';
+          if (parts.length > 1) {
+            sido = parts[0];
+            sigungu = parts[1];
+            // 3단계 행정구역(예: 경기도 수원시 영통구)
+            if (parts[2] && (parts[2].endsWith('구') || parts[2].endsWith('군'))) {
+              sigungu = parts[1] + ' ' + parts[2];
+            }
+          }
+          return { sido, sigungu };
+        }
+
+        // 시설 데이터 불러오기 및 거리순 정렬 (address 기반 필터)
+        async function fetchAndRenderFacilities() {
+          const { data } = await supabase.from('longtermcare').select('name, address, call, lat, lng');
+          if (!data || !userLat || !userLng) return;
+          // 필터링
+          const selectedSido = document.getElementById('sidoSelect').value;
+          const selectedSigungu = document.getElementById('sigunguSelect').value;
+          let filtered = data.filter(f => {
+            const { sido, sigungu } = parseSidoSigungu(f.address);
+            if (selectedSido && sido !== selectedSido) return false;
+            if (selectedSigungu && sigungu !== selectedSigungu) return false;
+            return true;
+          });
+
+          // 순차적으로 geocode 처리 (딜레이 포함)
+          const facilitiesWithCoords = [];
+          for (const fac of filtered) {
+            if (fac.lat && fac.lng) {
+              facilitiesWithCoords.push({ ...fac, lat: fac.lat, lng: fac.lng });
+            } else {
+              try {
+                const latlng = await geocodeAddress(fac.address);
+                facilitiesWithCoords.push({ ...fac, lat: latlng.lat, lng: latlng.lng });
+              } catch {
+                // 실패시 무시
+              }
+              // 200ms 딜레이 (초당 5건 이하)
+              await new Promise(res => setTimeout(res, 200));
+            }
+          }
+
+          const validFacilities = facilitiesWithCoords.filter(f => f && f.lat && f.lng);
+          validFacilities.forEach(fac => {
+            fac.distance = getDistance(userLat, userLng, fac.lat, fac.lng);
+          });
+          validFacilities.sort((a, b) => a.distance - b.distance);
+          facilitiesData = validFacilities.slice(0, 30);
+          renderFacilities(facilitiesData);
+        }
+
+        // 지도에 마커와 이름만 표시
+        function renderFacilities(facilities) {
+          facilityMarkers.forEach(m => m.setMap(null));
+          facilityMarkers = [];
+          facilities.forEach(fac => {
+            if (map && fac.lat && fac.lng) {
+              const marker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(fac.lat, fac.lng),
+                map: map,
+                title: fac.name
+              });
+              // 이름 라벨 (fin 스타일)
+              const label = new kakao.maps.CustomOverlay({
+                position: new kakao.maps.LatLng(fac.lat, fac.lng),
+                content: `<div style="background:#fff;border:2px solid #3b82f6;border-radius:16px;padding:2px 14px;font-size:1.05em;color:#3b82f6;font-weight:600;box-shadow:0 1px 4px rgba(59,130,246,0.10);margin-bottom:8px;">${fac.name}</div>`,
+                yAnchor: 1.7
+              });
+              label.setMap(map);
+              facilityMarkers.push(marker, label);
+              // 마커 클릭 이벤트: 팝업 오픈
+              kakao.maps.event.addListener(marker, 'click', function() {
+                openFacilityPopup(fac.name, fac.address);
+              });
+            }
+          });
+        }
+
+        // 시/도, 시군구 셀렉트 박스 초기화 (address 기반)
+        function initSidoSigungu(data) {
+          if (!data) return;
+          const sidoSet = new Set();
+          const sigunguMap = {};
+          data.forEach(f => {
+            const { sido, sigungu } = parseSidoSigungu(f.address);
+            if (sido) sidoSet.add(sido);
+            if (sido && sigungu) {
+              if (!sigunguMap[sido]) sigunguMap[sido] = new Set();
+              sigunguMap[sido].add(sigungu);
+            }
+          });
+          const sidoSelect = document.getElementById('sidoSelect');
+          const sigunguSelect = document.getElementById('sigunguSelect');
+          sidoSelect.innerHTML = '<option value="">시/도</option>' + Array.from(sidoSet).map(s => `<option value="${s}">${s}</option>`).join('');
+          sigunguSelect.innerHTML = '<option value="">시/군/구</option>';
+          sidoSelect.onchange = function() {
+            const sidos = sigunguMap[this.value] ? Array.from(sigunguMap[this.value]) : [];
+            sigunguSelect.innerHTML = '<option value="">시/군/구</option>' + sidos.map(s => `<option value="${s}">${s}</option>`).join('');
+            moveMapToSelectedRegion();
+            fetchAndRenderFacilities();
+          };
+          sigunguSelect.onchange = function() {
+            moveMapToSelectedRegion();
+            fetchAndRenderFacilities();
+          };
+        }
+
+        // 필터에서 선택된 시/도, 시군구로 지도 이동
+        function moveMapToSelectedRegion() {
+          const sido = document.getElementById('sidoSelect').value;
+          const sigungu = document.getElementById('sigunguSelect').value;
+          let query = '';
+          if (sido && sigungu) {
+            query = `${sido} ${sigungu}`;
+          } else if (sido) {
+            query = sido;
+          } else {
+            return;
+          }
+          geocoder.addressSearch(query, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              const lat = parseFloat(result[0].y);
+              const lng = parseFloat(result[0].x);
+              if (map) {
+                map.setCenter(new kakao.maps.LatLng(lat, lng));
+                map.setLevel(sigungu ? 6 : 8); // 시군구면 더 확대
+              }
+            }
+          });
+        }
+
+        // 내 위치 기반 지도 초기화
+        function initMap(lat, lng) {
+          userLat = lat;
+          userLng = lng;
+          const mapContainer = document.getElementById('map');
+          const mapOption = {
+            center: new kakao.maps.LatLng(lat, lng),
+            level: 5
+          };
+          map = new kakao.maps.Map(mapContainer, mapOption);
+          // 내 위치 마커
+          userMarker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(lat, lng),
+            map: map,
+            image: new kakao.maps.MarkerImage(
+              'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+              new kakao.maps.Size(24, 35)
+            )
+          });
+          // "내 위치" 라벨
+          if (window.userLocationLabel) window.userLocationLabel.setMap(null);
+          window.userLocationLabel = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(lat, lng),
+            content: `<div style="background:#fff;border:2px solid #3b82f6;border-radius:16px;padding:2px 14px;font-size:1.05em;color:#3b82f6;font-weight:600;box-shadow:0 1px 4px rgba(59,130,246,0.10);margin-bottom:8px;">내 위치</div>`,
+            yAnchor: 1.7
+          });
+          window.userLocationLabel.setMap(map);
+          // 내 위치의 시/도, 시군구를 필터에 자동 지정
+          setFilterByLatLng(lat, lng);
+          fetchAndRenderFacilities();
+        }
+
+        // 좌표로 시/도, 시군구를 필터에 자동 지정
+        function setFilterByLatLng(lat, lng) {
+          geocoder.coord2Address(lng, lat, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              const address = result[0].address.address_name;
+              const { sido, sigungu } = parseSidoSigungu(address);
+              const sidoSelect = document.getElementById('sidoSelect');
+              const sigunguSelect = document.getElementById('sigunguSelect');
+              if (sidoSelect && sigunguSelect) {
+                sidoSelect.value = sido;
+                // 시/군/구 옵션 갱신
+                const event = new Event('change');
+                sidoSelect.dispatchEvent(event);
+                setTimeout(() => {
+                  sigunguSelect.value = sigungu;
+                  sigunguSelect.dispatchEvent(new Event('change'));
+                }, 100);
+              }
+            }
+          });
+        }
+
+        // 위치 동의 및 지도 시작
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              initMap(pos.coords.latitude, pos.coords.longitude);
+            },
+            err => {
+              alert('위치정보를 사용할 수 없습니다. 서울 시청 기준으로 지도를 표시합니다.');
+              initMap(37.5665, 126.9780);
+              setFilterByLatLng(37.5665, 126.9780);
+            }
+          );
+        } else {
+          alert('이 브라우저는 위치정보를 지원하지 않습니다.');
+          initMap(37.5665, 126.9780);
+          setFilterByLatLng(37.5665, 126.9780);
+        }
+
+        // 최초 시/도, 시군구 셀렉트 박스 데이터 세팅 (address 기반)
+        supabase.from('longtermcare').select('name, address').then(({ data }) => {
+          initSidoSigungu(data);
+        });
+
+        // 실시간 구독 시에도 거리순 재정렬
+        async function subscribeFacilities() {
+          await fetchAndRenderFacilities();
+          supabase
+            .channel('public:facilities')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, payload => {
+              fetchAndRenderFacilities();
+            })
+            .subscribe();
+        }
+        subscribeFacilities();
+
+        // 시설 상세 팝업 열기
+        async function openFacilityPopup(name, address) {
+          const popup = document.getElementById('facilityPopup');
+          popup.innerHTML = `
+            <div class="facility-popup-header">
+              <span class="facility-popup-title">상세 정보</span>
+              <button class="facility-popup-close" onclick="closeFacilityPopup()">&times;</button>
+            </div>
+            <div class="facility-popup-content">로딩중...</div>
+          `;
+          popup.style.display = 'flex';
+          setTimeout(() => popup.classList.add('open'), 10);
+          // supabase에서 상세 데이터 fetch (name+address로 조회)
+          const { data, error } = await supabase.from('longtermcare').select('*').eq('name', name).eq('address', address).single();
+          if (!data) {
+            popup.querySelector('.facility-popup-content').innerHTML = '<div>데이터를 불러올 수 없습니다.</div>';
+            return;
+          }
+          // 서비스 카테고리 해시태그 변환
+          let tagsHtml = '';
+          if (data.services) {
+            tagsHtml = `<div class="facility-popup-tags">` +
+              data.services.split(',').map(s => `<span class="facility-popup-tag">#${s.trim()}</span>`).join('') +
+              `</div>`;
+          }
+          // 설립년도 계산
+          let startYear = '';
+          let yearStr = '';
+          if (data.start_date) {
+            const y = new Date(data.start_date);
+            if (!isNaN(y)) {
+              const now = new Date();
+              const years = now.getFullYear() - y.getFullYear();
+              startYear = `${y.getFullYear()}년 ${y.getMonth()+1}월`;
+              yearStr = ` (${years+1}년차)`;
+            }
+          }
+          popup.querySelector('.facility-popup-content').innerHTML = `
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">시설명</span>
+              <div style="font-size:1.15rem;font-weight:600;color:#222;">${data.name || '-'}</div>
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">제공 서비스</span>
+              ${tagsHtml || '<div style="color:#aaa;">-</div>'}
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">설립</span>
+              <div>${startYear || '-'}${yearStr}</div>
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">주차 정보</span>
+              <div>${data.parking_facilities || '-'}</div>
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">시설평가</span>
+              <div style="color:#e11d48;font-weight:600;">${data.score || '-'}</div>
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">운영 정보</span>
+              <div>${data.open ? data.open : '<span style="color:#e11d48;">시설에 직접 문의 부탁 드립니다</span>'}</div>
+            </div>
+            <div class="facility-popup-row">
+              <span class="facility-popup-label">전화 문의</span>
+              <button class="facility-popup-call-btn" onclick="callFacility('${data.call || ''}')">
+                ${data.call ? '전화 연결하기' : '번호 없음'}
+              </button>
+            </div>
+          `;
+        }
+        // 팝업 닫기
+        function closeFacilityPopup() {
+          const popup = document.getElementById('facilityPopup');
+          popup.classList.remove('open');
+          setTimeout(() => { popup.style.display = 'none'; }, 300);
+        }
+
+        function callFacility(number) {
+          if (!number) return;
+          if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            window.location.href = 'tel:' + number.replace(/[^0-9]/g, '');
+          } else {
+            alert('전화 연결은 모바일 기기에서만 가능합니다.');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html> 
