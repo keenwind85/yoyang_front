@@ -387,14 +387,26 @@
         // 시설 데이터 불러오기 및 거리순 정렬 (address 기반 필터)
         async function fetchAndRenderFacilities() {
           showLoading();
+          const selectedSido = document.getElementById('sidoSelect').value;
+          const selectedSigungu = document.getElementById('sigunguSelect').value;
+
+          // 시/군/구가 선택되지 않으면 데이터 표시하지 않음
+          if (!selectedSido || !selectedSigungu) {
+            hideLoading();
+            // 시/도만 선택된 경우 팝업 노출
+            if (selectedSido && !selectedSigungu) {
+              alert('시/군/구까지 선택해 주세요.');
+            }
+            renderFacilities([]); // 마커 모두 제거
+            return;
+          }
+
           const { data } = await supabase.from('longtermcare').select('name, address, call, lat, lng');
           if (!data || !userLat || !userLng) {
             hideLoading();
             return;
           }
           // 필터링
-          const selectedSido = document.getElementById('sidoSelect').value;
-          const selectedSigungu = document.getElementById('sigunguSelect').value;
           let filtered = data.filter(f => {
             const { sido, sigungu } = parseSidoSigungu(f.address);
             if (selectedSido && sido !== selectedSido) return false;
