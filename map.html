@@ -28,15 +28,20 @@
     .side-promo p { color: #555; font-size: 1.1rem; margin-bottom: 24px; }
     .side-promo img { width: 100%; border-radius: 12px; margin-bottom: 16px; }
     .main-wrapper {
-      margin-top: 56px;
+      margin-top: 0;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
       transition: max-width 0.2s;
+      padding-top: 0;
     }
     @media (min-width: 1100px) {
       .side-promo { display: block; }
       .main-wrapper {
+        margin-left: calc(var(--side-promo-width) + 32px);
+        max-width: 600px;
+      }
+      header, .bottom-nav {
         margin-left: calc(var(--side-promo-width) + 32px);
         max-width: 600px;
       }
@@ -67,20 +72,23 @@
       position: sticky;
       top: 0;
       background: #fff;
-      padding: 16px 0 8px 0;
+      padding: 8px 0 8px 0;
       text-align: center;
       font-size: 1.3rem;
       font-weight: bold;
       color: #3b82f6;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       z-index: 10;
+      margin: 0;
     }
     #map-container {
       position: relative;
       width: 100vw;
-      height: calc(100vh - 60px - 56px); /* 60px: 하단 네비, 56px: header */
+      height: calc(100vh - 60px - 56px);
       min-height: 400px;
       background: #eee;
+      margin-top: 0;
+      padding-top: 0;
     }
     #map {
       width: 100vw;
@@ -252,7 +260,7 @@
   </div>
   <!-- 하단 네비게이션 바 -->
   <nav class="bottom-nav">
-    <a href="home.html" class="nav-btn">
+    <a href="index.html" class="nav-btn">
       <i class="fas fa-home"></i>
       홈
     </a>
@@ -491,7 +499,8 @@
                 setTimeout(() => {
                   sigunguSelect.value = sigungu;
                   sigunguSelect.dispatchEvent(new Event('change'));
-                }, 100);
+                  fetchAndRenderFacilities();
+                }, 300);
               }
             }
           });
@@ -617,6 +626,9 @@
             alert('전화 연결은 모바일 기기에서만 가능합니다.');
           }
         }
+
+        // X버튼이 항상 동작하도록 window에 바인딩
+        window.closeFacilityPopup = closeFacilityPopup;
       });
     });
   </script>
