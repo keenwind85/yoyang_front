@@ -237,6 +237,27 @@
     .facility-popup-call-btn:hover {
       background: #2563eb;
     }
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 6px solid #e0e7ff;
+      border-top: 6px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -254,6 +275,10 @@
       <div class="filter-bar">
         <select id="sidoSelect"></select>
         <select id="sigunguSelect"></select>
+      </div>
+      <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <div style="margin-top:16px;color:#3b82f6;font-weight:600;">로딩중...</div>
       </div>
     </div>
     <div id="facilityPopup" class="facility-popup" style="display:none;"></div>
@@ -316,16 +341,44 @@
         }
 
         // address에서 시/도, 시/군/구 추출
+        const sidoNameMap = {
+          '서울': '서울특별시',
+          '부산': '부산광역시',
+          '대구': '대구광역시',
+          '인천': '인천광역시',
+          '광주': '광주광역시',
+          '대전': '대전광역시',
+          '울산': '울산광역시',
+          '세종': '세종특별자치시',
+          '경기': '경기도',
+          '강원': '강원특별자치도',
+          '충북': '충청북도',
+          '충남': '충청남도',
+          '전북': '전라북도',
+          '전남': '전라남도',
+          '경북': '경상북도',
+          '경남': '경상남도',
+          '제주': '제주특별자치도'
+        };
         function parseSidoSigungu(address) {
           if (!address) return { sido: '', sigungu: '' };
           const parts = address.split(' ');
           let sido = '', sigungu = '';
           if (parts.length > 1) {
-            sido = parts[0];
-            sigungu = parts[1];
-            // 3단계 행정구역(예: 경기도 수원시 영통구)
-            if (parts[2] && (parts[2].endsWith('구') || parts[2].endsWith('군'))) {
-              sigungu = parts[1] + ' ' + parts[2];
+            sido = sidoNameMap[parts[0]] || parts[0];
+            // 시/군/구 후보 생성
+            let candidates = [];
+            if (parts.length > 2 && (parts[2].endsWith('구') || parts[2].endsWith('군'))) {
+              candidates.push(parts[1] + ' ' + parts[2]); // 예: '수원시 영통구'
+            }
+            candidates.push(parts[1]); // 예: '서초구', '수원시'
+            // 실제 option value와 일치하는 후보를 반환
+            const sigunguSelect = document.getElementById('sigunguSelect');
+            if (sigunguSelect) {
+              const optionValues = Array.from(sigunguSelect.options).map(opt => opt.value);
+              sigungu = candidates.find(c => optionValues.includes(c)) || candidates[0];
+            } else {
+              sigungu = candidates[0];
             }
           }
           return { sido, sigungu };
@@ -333,8 +386,12 @@
 
         // 시설 데이터 불러오기 및 거리순 정렬 (address 기반 필터)
         async function fetchAndRenderFacilities() {
+          showLoading();
           const { data } = await supabase.from('longtermcare').select('name, address, call, lat, lng');
-          if (!data || !userLat || !userLng) return;
+          if (!data || !userLat || !userLng) {
+            hideLoading();
+            return;
+          }
           // 필터링
           const selectedSido = document.getElementById('sidoSelect').value;
           const selectedSigungu = document.getElementById('sigunguSelect').value;
@@ -369,6 +426,7 @@
           validFacilities.sort((a, b) => a.distance - b.distance);
           facilitiesData = validFacilities.slice(0, 30);
           renderFacilities(facilitiesData);
+          hideLoading();
         }
 
         // 지도에 마커와 이름만 표시
@@ -399,7 +457,7 @@
         }
 
         // 시/도, 시군구 셀렉트 박스 초기화 (address 기반)
-        function initSidoSigungu(data) {
+        function initSidoSigungu(data, callback) {
           if (!data) return;
           const sidoSet = new Set();
           const sigunguMap = {};
@@ -425,6 +483,9 @@
             moveMapToSelectedRegion();
             fetchAndRenderFacilities();
           };
+          if (callback) callback();
+          console.log("sidoSelect options:", Array.from(document.getElementById('sidoSelect').options).map(o => o.value));
+          console.log("sigunguSelect options:", Array.from(document.getElementById('sigunguSelect').options).map(o => o.value));
         }
 
         // 필터에서 선택된 시/도, 시군구로 지도 이동
@@ -488,20 +549,43 @@
           geocoder.coord2Address(lng, lat, function(result, status) {
             if (status === kakao.maps.services.Status.OK) {
               const address = result[0].address.address_name;
+              console.log("현재 위치 주소:", address); // 디버깅용 로그 추가
               const { sido, sigungu } = parseSidoSigungu(address);
-              const sidoSelect = document.getElementById('sidoSelect');
-              const sigunguSelect = document.getElementById('sigunguSelect');
-              if (sidoSelect && sigunguSelect) {
-                sidoSelect.value = sido;
-                // 시/군/구 옵션 갱신
-                const event = new Event('change');
-                sidoSelect.dispatchEvent(event);
-                setTimeout(() => {
-                  sigunguSelect.value = sigungu;
-                  sigunguSelect.dispatchEvent(new Event('change'));
-                  fetchAndRenderFacilities();
-                }, 300);
-              }
+              console.log("파싱된 시/도:", sido, "시/군/구:", sigungu); // 디버깅용 로그 추가
+              // 시/도, 시/군/구 데이터 로드 완료 확인을 위해 데이터 로드 후 실행하도록 수정
+              supabase.from('longtermcare').select('name, address').then(({ data }) => {
+                if (!data || data.length === 0) {
+                  console.log("데이터 로드 실패");
+                  return;
+                }
+                // 필터 옵션 초기화 (콜백에서 값 할당)
+                initSidoSigungu(data, () => {
+                  const sidoSelect = document.getElementById('sidoSelect');
+                  const sigunguSelect = document.getElementById('sigunguSelect');
+                  if (sidoSelect && sido) {
+                    console.log("시/도 선택:", sido); // 디버깅용 로그 추가
+                    sidoSelect.value = sido;
+                    sidoSelect.dispatchEvent(new Event('change'));
+                    // MutationObserver로 시/군/구 옵션이 추가된 후 값 할당
+                    let observerTryCount = 0;
+                    const observer = new MutationObserver(() => {
+                      observerTryCount++;
+                      const optionValues = Array.from(sigunguSelect.options).map(opt => opt.value);
+                      const { sigungu: parsedSigungu } = parseSidoSigungu(address);
+                      console.log('observer try', observerTryCount, 'parsedSigungu:', parsedSigungu, 'optionValues:', optionValues);
+                      if (sigunguSelect && optionValues.includes(parsedSigungu)) {
+                        sigunguSelect.value = parsedSigungu;
+                        sigunguSelect.dispatchEvent(new Event('change'));
+                        observer.disconnect();
+                      }
+                      if (observerTryCount > 10) observer.disconnect();
+                    });
+                    observer.observe(sigunguSelect, { childList: true });
+                  }
+                });
+              });
+            } else {
+              console.log("좌표->주소 변환 실패");
             }
           });
         }
@@ -510,31 +594,35 @@
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             pos => {
+              console.log("위치 정보 획득 성공:", pos.coords.latitude, pos.coords.longitude);
               initMap(pos.coords.latitude, pos.coords.longitude);
+              // setFilterByLatLng은 initMap 내부에서 호출되므로 여기서는 제거
             },
             err => {
+              console.log("위치 정보 획득 실패:", err.message);
               alert('위치정보를 사용할 수 없습니다. 서울 시청 기준으로 지도를 표시합니다.');
               initMap(37.5665, 126.9780);
-              setFilterByLatLng(37.5665, 126.9780);
+              // setFilterByLatLng은 initMap 내부에서 호출되므로 여기서는 제거
             }
           );
         } else {
+          console.log("Geolocation API를 지원하지 않는 브라우저");
           alert('이 브라우저는 위치정보를 지원하지 않습니다.');
           initMap(37.5665, 126.9780);
-          setFilterByLatLng(37.5665, 126.9780);
+          // setFilterByLatLng은 initMap 내부에서 호출되므로 여기서는 제거
         }
 
-        // 최초 시/도, 시군구 셀렉트 박스 데이터 세팅 (address 기반)
-        supabase.from('longtermcare').select('name, address').then(({ data }) => {
-          initSidoSigungu(data);
-        });
+        // 최초 시/도, 시군구 셀렉트 박스 데이터 세팅은 setFilterByLatLng 내부로 이동했으므로 주석 처리
+        // supabase.from('longtermcare').select('name, address').then(({ data }) => {
+        //   initSidoSigungu(data);
+        // });
 
         // 실시간 구독 시에도 거리순 재정렬
         async function subscribeFacilities() {
           await fetchAndRenderFacilities();
           supabase
-            .channel('public:facilities')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, payload => {
+            .channel('public:longtermcare')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'longtermcare' }, payload => {
               fetchAndRenderFacilities();
             })
             .subscribe();
@@ -627,8 +715,16 @@
           }
         }
 
-        // X버튼이 항상 동작하도록 window에 바인딩
+        // 전역에 바인딩
         window.closeFacilityPopup = closeFacilityPopup;
+        window.callFacility = callFacility;
+
+        function showLoading() {
+          document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        function hideLoading() {
+          document.getElementById('loadingOverlay').style.display = 'none';
+        }
       });
     });
   </script>
