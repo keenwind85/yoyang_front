@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시설 상세 정보</title>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <!-- Font Awesome -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #3b82f6;
+      --primary-light: #e0e7ff;
+      --success-color: #16a34a;
+      --success-light: #f0fdf4;
+      --success-border: #86efac;
+      --gray-100: #f8fafc;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+    }
+    body {
+      margin: 0;
+      font-family: 'Noto Sans KR', Arial, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-800);
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--gray-600);
+      padding: 8px;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      flex: 1;
+    }
+    .main-content {
+      margin-top: 56px;
+      padding: 24px 16px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .facility-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+    .facility-score {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary-color);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title i {
+      color: var(--primary-color);
+      font-size: 1.1rem;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .info-label {
+      width: 100px;
+      color: var(--gray-500);
+      font-size: 0.95rem;
+      padding-top: 2px;
+    }
+    .info-value {
+      flex: 1;
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+    .service-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .service-tag {
+      background: var(--primary-light);
+      color: var(--primary-color);
+      border-radius: 12px;
+      padding: 4px 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .staff-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .staff-tag {
+      background: var(--success-light);
+      color: var(--success-color);
+      border: 1px solid var(--success-border);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .staff-tag i {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+    .call-btn {
+      display: block;
+      width: 100%;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .call-btn:hover {
+      background: #2563eb;
+    }
+    .disclaimer {
+      margin-top: 32px;
+      padding: 16px;
+      border-top: 1px solid var(--gray-200);
+      color: var(--gray-500);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .disclaimer a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+    .disclaimer a:hover {
+      text-decoration: underline;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 6px solid var(--primary-light);
+      border-top: 6px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin-top: 16px;
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    .error-message {
+      text-align: center;
+      color: #ef4444;
+      padding: 24px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-btn" onclick="history.back()">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <div class="header-title">시설 상세 정보</div>
+  </header>
+
+  <main class="main-content">
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">로딩중...</div>
+    </div>
+
+    <!-- 에러 메시지 -->
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+    <!-- 시설 정보 -->
+    <div id="facilityContent" style="display: none;">
+      <h1 class="facility-name" id="facilityName"></h1>
+      <div class="facility-score" id="facilityScore"></div>
+
+      <!-- 기본 정보 -->
+      <section class="section">
+        <h2 class="section-title">
+          <i class="fas fa-info-circle"></i>
+          기본 정보
+        </h2>
+        <div class="info-row">
+          <div class="info-label">주소</div>
+          <div class="info-value" id="facilityAddress"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">전화번호</div>
+          <div class="info-value" id="facilityCall"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">운영시간</div>
+          <div class="info-value" id="facilityHours"></div>
+        </div>
+      </section>
+
+      <!-- 제공 서비스 -->
+      <section class="section">
+        <h2 class="section-title">
+          <i class="fas fa-hand-holding-heart"></i>
+          제공 서비스
+        </h2>
+        <div class="service-tags" id="serviceList"></div>
+      </section>
+
+      <!-- 주요 인력 -->
+      <section class="section">
+        <h2 class="section-title">
+          <i class="fas fa-user-nurse"></i>
+          주요 인력
+        </h2>
+        <div class="staff-tags" id="staffList"></div>
+      </section>
+
+      <!-- 주차 정보 -->
+      <section class="section">
+        <h2 class="section-title">
+          <i class="fas fa-car"></i>
+          주차정보
+        </h2>
+        <div id="parkingInfo"></div>
+      </section>
+
+      <!-- 대중교통 정보 -->
+      <section class="section">
+        <h2 class="section-title">
+          <i class="fas fa-bus"></i>
+          대중교통 정보
+        </h2>
+        <div id="transportInfo"></div>
+      </section>
+
+      <!-- 전화 연결 버튼 -->
+      <button class="call-btn" id="callButton">
+        <i class="fas fa-phone"></i>
+        전화 연결하기
+      </button>
+
+      <!-- 면책 조항 -->
+      <div class="disclaimer">
+        본 정보는 공공데이터를 기반으로 제공되며, 실제 정보와 다를 수 있습니다.
+        정보 수정이 필요한 시설에서는 <a href="mailto:support@example.com">이메일</a>로 연락 주시기 바랍니다.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Supabase 클라이언트 초기화
+    const supabase = window.supabase.createClient(
+      'https://ecryblreqspjhmfpyjdn.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnlibHJlcXNwamhtZnB5amRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5ODgwMTcsImV4cCI6MjA1OTU2NDAxN30.6W-be268DsgQIbgJVk6PBzc-odeRO-cLFOzn7CRkgAw'
+    );
+
+    // URL 파라미터에서 시설 정보 가져오기
+    const urlParams = new URLSearchParams(window.location.search);
+    const facilityName = urlParams.get('name');
+    const facilityAddress = urlParams.get('address');
+
+    // 로딩 상태 관리
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('facilityContent').style.display = 'none';
+      document.getElementById('errorMessage').style.display = 'none';
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('facilityContent').style.display = 'block';
+    }
+
+    function showError(message) {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('facilityContent').style.display = 'none';
+      document.getElementById('errorMessage').style.display = 'block';
+      document.getElementById('errorMessage').textContent = message;
+    }
+
+    // 시설 정보 로드
+    async function loadFacilityInfo() {
+      if (!facilityName || !facilityAddress) {
+        showError('시설 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      try {
+        showLoading();
+
+        // Supabase에서 시설 정보 조회
+        const { data, error } = await supabase
+          .from('longtermcare')
+          .select('*')
+          .eq('name', facilityName)
+          .eq('address', facilityAddress)
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('시설 정보를 찾을 수 없습니다.');
+
+        // 한글(공백 포함)만 추출하여 표시
+        const koreanName = (data.name.match(/[가-힣\s]+/g) || []).join('').trim();
+        document.getElementById('facilityName').textContent = koreanName || data.name;
+        // 평가등급 라벨 없이 값만 노출, 줄바꿈 처리
+        if (data.score) {
+          document.getElementById('facilityScore').innerHTML = data.score.replace(/\n/g, '<br>');
+        } else {
+          document.getElementById('facilityScore').innerHTML = '정보없음';
+        }
+        document.getElementById('facilityAddress').innerHTML = (data.address || '').replace(/\n/g, '<br>') +
+          `<span style="margin-left:8px; font-size:0.92em;">
+            <a href="#" class="map-link" id="naverMapBtn" style="color:#1ec800; text-decoration:underline; margin-right:6px;">네이버지도</a>
+            <a href="#" class="map-link" id="kakaoMapBtn" style="color:#3b82f6; text-decoration:underline;">카카오지도</a>
+          </span>`;
+        document.getElementById('facilityCall').innerHTML = (data.call || '정보없음').replace(/\n/g, '<br>');
+        document.getElementById('facilityHours').innerHTML = (data.open || '정보없음').replace(/\n/g, '<br>');
+        
+        // 서비스 목록 표시
+        const serviceList = document.getElementById('serviceList');
+        if (data.services) {
+          // services가 문자열인 경우 쉼표로 분리
+          const serviceArray = typeof data.services === 'string' 
+            ? data.services.split(',').map(s => s.trim())
+            : Array.isArray(data.services) 
+              ? data.services 
+              : [];
+          
+          if (serviceArray.length > 0) {
+            serviceList.innerHTML = serviceArray
+              .map(service => `<div class="service-tag">${service}</div>`)
+              .join('');
+          } else {
+            serviceList.innerHTML = '<div class="info-value">제공 서비스 정보가 없습니다.</div>';
+          }
+        } else {
+          serviceList.innerHTML = '<div class="info-value">제공 서비스 정보가 없습니다.</div>';
+        }
+
+        // 주요 인력 정보 표시
+        const staffList = document.getElementById('staffList');
+        // 주요 인력 매핑 및 아이콘 지정
+        const staffFields = [
+          { key: 'social_worker', label: '사회복지사', icon: 'fa-hands-helping', color: '#16a34a' },
+          { key: 'care_worker', label: '요양보호사', icon: 'fa-user-nurse', color: '#3b82f6' },
+          { key: 'nurse', label: '간호사', icon: 'fa-user-md', color: '#f59e42' },
+          { key: 'nurse_aide', label: '간호조무사', icon: 'fa-user-md', color: '#fbbf24' },
+          { key: 'physical_therapist', label: '물리치료사', icon: 'fa-dumbbell', color: '#a21caf' },
+          { key: 'dental_hygienist', label: '치과위생사', icon: 'fa-tooth', color: '#0ea5e9' },
+          { key: 'occupational_therapist', label: '작업치료사', icon: 'fa-hands', color: '#e11d48' }
+        ];
+        let staffHtml = '';
+        staffFields.forEach(staff => {
+          const n = parseInt(data[staff.key], 10);
+          if (n && n > 0) {
+            staffHtml += `<div class="staff-tag"><i class="fas ${staff.icon}" style="color:${staff.color};"></i> ${staff.label} ${n}명</div>`;
+          }
+        });
+        staffList.innerHTML = staffHtml || '<div class="info-value">주요 인력 정보가 없습니다.</div>';
+
+        // 주차 정보 표시
+        const parkingInfo = document.getElementById('parkingInfo');
+        if (data.parking_facilities) {
+          parkingInfo.innerHTML = `<div class="info-value">${data.parking_facilities.replace(/\n/g, '<br>')}</div>`;
+        } else {
+          parkingInfo.innerHTML = '<div class="info-value">주차 정보가 없습니다.</div>';
+        }
+
+        // 대중교통 정보 표시
+        const transportInfo = document.getElementById('transportInfo');
+        if (data.public_transport) {
+          transportInfo.innerHTML = `<div class="info-value">${data.public_transport}</div>`;
+        } else {
+          transportInfo.innerHTML = '<div class="info-value">대중교통 정보가 없습니다.</div>';
+        }
+
+        // 전화 연결 버튼 이벤트 핸들러
+        const callButton = document.getElementById('callButton');
+        if (data.call) {
+          callButton.onclick = () => window.location.href = `tel:${data.call}`;
+        } else {
+          callButton.style.display = 'none';
+        }
+
+        // 지도앱/웹 연결 스크립트
+        setTimeout(() => {
+          const address = data.address || '';
+          // 네이버 지도
+          document.getElementById('naverMapBtn').onclick = function(e) {
+            e.preventDefault();
+            const encoded = encodeURIComponent(address);
+            // 앱 딥링크 우선, 실패 시 웹
+            const naverAppUrl = `nmap://search?query=${encoded}`;
+            const naverWebUrl = `https://map.naver.com/v5/search/${encoded}`;
+            if (/(iPhone|iPad|iPod|Android)/.test(navigator.userAgent)) {
+              window.location.href = naverAppUrl;
+              setTimeout(() => { window.open(naverWebUrl, '_blank'); }, 800);
+            } else {
+              window.open(naverWebUrl, '_blank');
+            }
+          };
+          // 카카오 지도
+          document.getElementById('kakaoMapBtn').onclick = function(e) {
+            e.preventDefault();
+            const encoded = encodeURIComponent(address);
+            // 앱 딥링크 우선, 실패 시 웹
+            const kakaoAppUrl = `kakaomap://search?q=${encoded}`;
+            const kakaoWebUrl = `https://map.kakao.com/?q=${encoded}`;
+            if (/(iPhone|iPad|iPod|Android)/.test(navigator.userAgent)) {
+              window.location.href = kakaoAppUrl;
+              setTimeout(() => { window.open(kakaoWebUrl, '_blank'); }, 800);
+            } else {
+              window.open(kakaoWebUrl, '_blank');
+            }
+          };
+        }, 100);
+
+        hideLoading();
+      } catch (error) {
+        console.error('시설 정보 로드 실패:', error);
+        showError('시설 정보를 불러오는 중 오류가 발생했습니다.');
+      }
+    }
+
+    // 페이지 로드 시 시설 정보 로드
+    loadFacilityInfo();
+  </script>
+</body>
+</html> 
