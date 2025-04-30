@@ -1,3 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>홈 - 내 주변 추천 요양시설</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { margin:0; font-family:'Noto Sans KR',Arial,sans-serif; background:#f8fafc; color:#222; }
+    .main-wrapper { max-width:600px; margin:0 auto; padding-bottom:80px; }
+    header { position:sticky; top:0; background:#fff; padding:16px 0 10px 0; text-align:center; font-size:1.3rem; font-weight:700; color:#3b82f6; box-shadow:0 2px 8px rgba(0,0,0,0.03); z-index:10; }
+    .consult-banner { background:linear-gradient(90deg,#3b82f6 60%,#60a5fa 100%);color:#fff;border-radius:18px;margin:24px 16px 16px 16px;padding:28px 20px 24px 20px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden; }
+    .consult-banner .text h2 { font-size:1.18rem;margin:0 0 8px 0;font-weight:700; }
+    .consult-banner .text p { margin:0 0 14px 0;font-size:1rem;opacity:0.95; }
+    .consult-banner .consult-btn { background:#fff;color:#3b82f6;border:none;border-radius:8px;padding:8px 18px;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,0.10);transition:background 0.2s; }
+    .consult-banner .consult-btn:hover { background:#e0e7ff; }
+    .consult-banner .icon-anim { width:54px;height:54px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(59,130,246,0.13);animation:bounce 1.2s infinite cubic-bezier(.6,1.5,.6,1); }
+    @keyframes bounce { 0%{transform:translateY(0);} 20%{transform:translateY(-10px);} 40%{transform:translateY(0);} 60%{transform:translateY(-5px);} 80%{transform:translateY(0);} 100%{transform:translateY(0);} }
+    .section-title-row { display:flex; align-items:center; justify-content:space-between; margin:28px 14px 12px 18px; }
+    .section-title { font-size:1.13rem;font-weight:600;color:#2563eb; }
+    .recommend-list { margin:0 14px; }
+    .facility-item { background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(59,130,246,0.07);padding:18px 18px 14px 18px;margin-bottom:16px;cursor:pointer;transition:box-shadow 0.18s; }
+    .facility-item:hover { box-shadow:0 4px 18px rgba(59,130,246,0.13); }
+    .facility-title { font-size:1.08rem;font-weight:700;color:#222;margin-bottom:4px; }
+    .facility-meta { font-size:0.97rem;color:#666;margin-bottom:7px;display:flex;gap:10px; }
+    .facility-tags { display:flex;gap:7px;flex-wrap:wrap;margin-top:7px; }
+    .facility-tag { background:#e0e7ff;color:#3b82f6;border-radius:12px;padding:3px 12px;font-size:0.97rem;font-weight:500; }
+    .location-btn { background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:1.01rem;font-weight:600;cursor:pointer;transition:background 0.2s; margin-left:8px; }
+    .location-btn:hover { background:#2563eb; }
+    .location-msg { background:#f1f5f9;color:#3b82f6;border-radius:12px;padding:18px 0;text-align:center;font-size:1.07rem;font-weight:500;margin:18px 14px 0 14px; }
+    .loading { text-align:center;color:#3b82f6;font-weight:600;padding:32px 0; }
+    /* 위치 설정 팝업 */
+    #locationPopup { display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:999;align-items:center;justify-content:center; }
+    #locationPopup .popup-inner { background:#fff;border-radius:14px;padding:28px 24px;min-width:260px;box-shadow:0 4px 24px rgba(0,0,0,0.10); }
+    #locationPopup h4 { margin:0 0 18px 0;font-size:1.1rem; }
+    #locationPopup select { width:100%;padding:8px 6px;font-size:1rem;margin-bottom:14px; }
+    #locationPopup .popup-btn { width:100%;background:#3b82f6;color:#fff;padding:10px 0;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:8px; }
+    #locationPopup .popup-btn.cancel { background:#e5e7eb;color:#222;margin-bottom:0; }
+    .bottom-nav { position: fixed; bottom: 0; height: 60px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; align-items: center; z-index: 100; left: 0; right: 0; max-width: 600px; margin-left: auto; margin-right: auto; }
+    .bottom-nav .nav-btn { display: flex; flex-direction: column; align-items: center; color: #888; font-size: 0.93rem; text-decoration: none; transition: color 0.2s; }
+    .bottom-nav .nav-btn.active, .bottom-nav .nav-btn:hover { color: #3b82f6; }
+    .bottom-nav .nav-btn i { font-size: 1.3rem; margin-bottom: 2px; }
+    @media (max-width: 600px) { .bottom-nav { max-width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="main-wrapper">
+    <header>홈 - 내 주변 추천 요양시설</header>
+    <!-- 전문가 상담 배너 -->
+    <div class="consult-banner">
+      <div class="text">
+        <h2>전문가와 요양 서비스 상담하기</h2>
+        <p>궁금한 점, 시설 선택 고민, 비용 안내 등<br>친절한 상담원이 도와드립니다.</p>
+        <button class="consult-btn" id="openConsultBtn">상담하기</button>
+      </div>
+      <div class="icon-anim">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#3b82f6"/><path d="M16 9c-2.5 0-4.5 2-4.5 4.5S13.5 18 16 18s4.5-2 4.5-4.5S18.5 9 16 9zm0 7c-1.4 0-2.5-1.1-2.5-2.5S14.6 11 16 11s2.5 1.1 2.5 2.5S17.4 16 16 16z" fill="#fff"/><path d="M16 19c-3.3 0-6 2.7-6 6h2c0-2.2 1.8-4 4-4s4 1.8 4 4h2c0-3.3-2.7-6-6-6z" fill="#fff"/></svg>
+      </div>
+    </div>
+    <!-- 상담 폼 팝업 -->
+    <div id="consultPopup" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.28);z-index:2000;align-items:center;justify-content:center;">
+      <div id="consultPopupInner" style="background:#fff;border-radius:16px;max-width:380px;width:92vw;padding:0 0 24px 0;box-shadow:0 4px 32px rgba(0,0,0,0.13);position:relative;">
+        <button id="closeConsultPopup" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.7rem;color:#888;cursor:pointer;">&times;</button>
+        <div id="consultStep1" style="padding:32px 24px 18px 24px;display:block;">
+          <div style="font-size:1.13rem;font-weight:700;margin-bottom:8px;">어떤 돌봄 상담이 필요하세요?</div>
+          <div style="color:#555;font-size:1.01rem;margin-bottom:22px;">상담 진행을 위해 필요한 서비스를 선택해 주세요.</div>
+          <div class="consult-service-list">
+            <div class="consult-service-item" data-value="상담필요">
+              <div class="title">상담필요</div>
+              <div class="desc">잘 모르겠어요. 기초상담이 필요해요.<br><span style='color:#3b82f6;'>상담으로 자세한 돌봄 안내</span></div>
+            </div>
+            <div class="consult-service-item" data-value="주야간보호">
+              <div class="title">주야간보호</div>
+              <div class="desc">일정 시간 동안 돌봐줄 곳이 필요해요.<br><span style='color:#3b82f6;'>시설에서 최소 3~10시간 돌봄 지원</span></div>
+            </div>
+            <div class="consult-service-item" data-value="방문요양">
+              <div class="title">방문요양</div>
+              <div class="desc">집으로 와서 돌봐주세요.<br><span style='color:#3b82f6;'>요양보호사 방문, 일상/신체/정서 지원</span></div>
+            </div>
+            <div class="consult-service-item" data-value="방문목욕">
+              <div class="title">방문목욕</div>
+              <div class="desc">집으로 와서 목욕을 도와주세요.<br><span style='color:#3b82f6;'>전문 인력 방문, 주기적 목욕 서비스</span></div>
+            </div>
+            <div class="consult-service-item" data-value="방문간호">
+              <div class="title">방문간호</div>
+              <div class="desc">집에서 전문 간호 처치가 필요해요.<br><span style='color:#3b82f6;'>전문 간호 인력 방문, 의료 서비스</span></div>
+            </div>
+            <div class="consult-service-item" data-value="주야간보호+방문요양">
+              <div class="title">주야간보호 + 방문요양</div>
+              <div class="desc">시설과 집, 두 곳 모두 이용하고 싶어요.<br><span style='color:#3b82f6;'>시설+방문 돌봄 지원</span></div>
+            </div>
+          </div>
+          <button id="consultStep1Next" class="popup-btn" style="width:100%;margin-top:24px;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.07rem;font-weight:600;cursor:pointer;opacity:0.7;" disabled>다음</button>
+        </div>
+        <div id="consultStep2" style="padding:32px 24px 18px 24px;display:none;">
+          <div style="font-size:1.13rem;font-weight:700;margin-bottom:18px;">상담 신청 정보 입력</div>
+          <div style="margin-bottom:18px;">
+            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">1. 장기요양 등급이 있으신가요?</div>
+            <div class="consult-grade-list" style="display:flex;gap:10px;">
+              <button class="consult-grade-btn" data-value="있음" style="flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:1rem;font-weight:600;cursor:pointer;">장기요양등급이 있어요</button>
+              <button class="consult-grade-btn" data-value="없음" style="flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:1rem;font-weight:600;cursor:pointer;">등급이 없어요</button>
+            </div>
+          </div>
+          <div style="margin-bottom:18px;">
+            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">2. 서비스를 원하는 지역을 선택해 주세요.</div>
+            <button id="consultRegionBtn" style="width:100%;background:#f1f5f9;color:#3b82f6;border:none;border-radius:8px;padding:10px 0;font-size:1rem;font-weight:600;cursor:pointer;">지역 선택하기</button>
+            <div id="consultRegionResult" style="margin-top:7px;font-size:0.98rem;color:#2563eb;"></div>
+          </div>
+          <div style="margin-bottom:18px;">
+            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">3. 상담 시 남기고 싶은 요청사항/특이사항</div>
+            <textarea id="consultMemo" rows="3" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:1rem;resize:none;"></textarea>
+          </div>
+          <button id="consultSubmitBtn" class="popup-btn" style="width:100%;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.07rem;font-weight:600;cursor:pointer;opacity:0.7;" disabled>신청하기</button>
+        </div>
+        <div id="consultStepIndicator" style="text-align:center;margin-top:8px;font-size:0.98rem;color:#3b82f6;">1 / 2</div>
+      </div>
+    </div>
+    <!-- 위치 설정/추천 리스트 -->
+    <div class="section-title-row">
+      <div class="section-title">내 주변 추천 요양시설</div>
+      <button id="setLocationBtn" class="location-btn">내 위치 설정하기</button>
+    </div>
+    <div id="recommendList" class="recommend-list">
+      <div class="loading">로딩중...</div>
+    </div>
+    <!-- 위치 설정 팝업 -->
+    <div id="locationPopup">
+      <div class="popup-inner">
+        <h4>내 위치 선택</h4>
+        <select id="popupSido"><option value="">시/도 선택</option></select>
+        <select id="popupSigungu"><option value="">시/군/구 선택(선택안해도 됨)</option></select>
+        <button id="popupConfirmBtn" class="popup-btn">선택 완료</button>
+        <button id="popupCancelBtn" class="popup-btn cancel">취소</button>
+      </div>
+    </div>
+  </div>
+  <!-- 하단 네비게이션 바 -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-btn active">
+      <i class="fas fa-home"></i>
+      홈
+    </a>
+    <a href="map.html" class="nav-btn">
+      <i class="fas fa-hospital"></i>
+      시설찾기
+    </a>
+    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
+      <i class="fas fa-book-open"></i>
+      요양정보
+    </a>
+    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
+      <i class="fas fa-user"></i>
+      내정보
+    </a>
+  </nav>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+  <script>
+    // Supabase 연결
+    const supabase = window.supabase.createClient('https://ecryblreqspjhmfpyjdn.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnlibHJlcXNwamhtZnB5amRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5ODgwMTcsImV4cCI6MjA1OTU2NDAxN30.6W-be268DsgQIbgJVk6PBzc-odeRO-cLFOzn7CRkgAw');
+    let userSido = localStorage.getItem('userSido') || '';
+    let userSigungu = localStorage.getItem('userSigungu') || '';
+    // 시도/시군구 목록
+    let sidoList = [], sigunguMap = {};
+    // 서비스 태그 정의
+    const serviceMap = [
+      { key: '노인공동생활가정', label: '노인공동생활가정' },
+      { key: '노인요양시설', label: '노인요양시설' },
+      { key: '주간보호센터', label: '주간보호센터' },
+      { key: '방문요양센터', label: '방문요양센터' },
+      { key: '방문간호', label: '방문간호' },
+      { key: '방문목욕', label: '방문목욕' }
+    ];
+    // 시도/시군구 목록 불러오기
+    async function fetchSidoSigunguList() {
+      const { data } = await supabase.from('longtermcare').select('sido, sigungu');
+      if (data) {
+        sidoList = [...new Set(data.map(f => f.sido))];
+        sigunguMap = {};
+        data.forEach(f => {
+          if (!sigunguMap[f.sido]) sigunguMap[f.sido] = new Set();
+          sigunguMap[f.sido].add(f.sigungu);
+        });
+        Object.keys(sigunguMap).forEach(sido => {
+          sigunguMap[sido] = Array.from(sigunguMap[sido]);
+        });
+      }
+    }
+    // 위치 설정 팝업 열기
+    const setLocationBtn = document.getElementById('setLocationBtn');
+    const locationPopup = document.getElementById('locationPopup');
+    const popupSido = document.getElementById('popupSido');
+    const popupSigungu = document.getElementById('popupSigungu');
+    const popupConfirmBtn = document.getElementById('popupConfirmBtn');
+    const popupCancelBtn = document.getElementById('popupCancelBtn');
+    setLocationBtn.onclick = function() {
+      popupSido.innerHTML = '<option value="">시/도 선택</option>' + sidoList.map(s => `<option value="${s}">${s}</option>`).join('');
+      popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
+      locationPopup.style.display = 'flex';
+    };
+    popupSido.onchange = function() {
+      const sido = popupSido.value;
+      if (sido && sigunguMap[sido]) {
+        popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>' + sigunguMap[sido].map(s => `<option value="${s}">${s}</option>`).join('');
+      } else {
+        popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
+      }
+    };
+    popupCancelBtn.onclick = function() {
+      locationPopup.style.display = 'none';
+    };
+    popupConfirmBtn.onclick = function() {
+      userSido = popupSido.value;
+      userSigungu = popupSigungu.value;
+      if (!userSido) {
+        alert('시/도를 선택해 주세요.');
+        return;
+      }
+      localStorage.setItem('userSido', userSido);
+      localStorage.setItem('userSigungu', userSigungu);
+      locationPopup.style.display = 'none';
+      renderRecommendFacilities();
+    };
+    // 추천 리스트 렌더링
+    async function renderRecommendFacilities() {
+      const recommendList = document.getElementById('recommendList');
+      recommendList.innerHTML = '<div class="loading">로딩중...</div>';
+      let { data, error } = await supabase.from('longtermcare').select('name, address, sido, sigungu, start_date, lat, lng, services');
+      if (error || !data) {
+        recommendList.innerHTML = '<div class="loading">데이터를 불러올 수 없습니다.</div>';
+        return;
+      }
+      // 위치 미설정 시 안내
+      if (!userSido) {
+        recommendList.innerHTML = '<div class="location-msg">내 주변 추천 요양시설을 선택해 주세요<br><button class="location-btn" onclick="document.getElementById(\'setLocationBtn\').click()">내 위치 설정하기</button></div>';
+        return;
+      }
+      // 위치 설정 시 필터링
+      let facilities = data.filter(f => f.sido === userSido && (!userSigungu || f.sigungu === userSigungu));
+      // 위치 미설정/매칭 실패 시 랜덤 추천
+      if (facilities.length === 0) facilities = data.sort(() => Math.random() - 0.5).slice(0, 10);
+      recommendList.innerHTML = facilities.map(f => {
+        const year = (f.start_date || '').slice(0, 4);
+        // 서비스 태그 추출
+        const serviceTags = [];
+        if (f.services) {
+          serviceMap.forEach(s => {
+            if (f.services.includes(s.key)) serviceTags.push(`<span class=\'facility-tag\'>${s.label}</span>`);
+          });
+        }
+        return `<div class=\'facility-item\' onclick=\'window.location.href="facility-detail.html?name=${encodeURIComponent(f.name)}&address=${encodeURIComponent(f.address || "")}"\'>
+          <div class=\'facility-title\'>${f.name}</div>
+          <div class=\'facility-meta\'>
+            <span>${f.sido || ''} ${f.sigungu || ''}</span>
+            ${year ? `<span>설립: ${year}</span>` : ''}
+          </div>
+          <div class=\'facility-tags\'>${serviceTags.join('')}</div>
+        </div>`;
+      }).join('');
+    }
+    // 시도/시군구 목록 먼저 불러오고 렌더링
+    fetchSidoSigunguList().then(renderRecommendFacilities);
+    // 상담 폼 팝업 관련
+    const openConsultBtn = document.getElementById('openConsultBtn');
+    const consultPopup = document.getElementById('consultPopup');
+    const consultPopupInner = document.getElementById('consultPopupInner');
+    const closeConsultPopup = document.getElementById('closeConsultPopup');
+    const consultStep1 = document.getElementById('consultStep1');
+    const consultStep2 = document.getElementById('consultStep2');
+    const consultStep1Next = document.getElementById('consultStep1Next');
+    const consultStep2Btn = document.getElementById('consultSubmitBtn');
+    const consultStepIndicator = document.getElementById('consultStepIndicator');
+    let consultForm = { service: '', grade: '', regionSido: '', regionSigungu: '', memo: '' };
+    // 1페이지: 서비스 선택
+    const serviceItems = consultStep1.querySelectorAll('.consult-service-item');
+    serviceItems.forEach(item => {
+      item.onclick = function() {
+        serviceItems.forEach(i => i.style.border = '1.5px solid #e5e7eb');
+        this.style.border = '2.5px solid #3b82f6';
+        consultForm.service = this.getAttribute('data-value');
+        consultStep1Next.disabled = false;
+        consultStep1Next.style.opacity = 1;
+      };
+    });
+    consultStep1Next.onclick = function() {
+      consultStep1.style.display = 'none';
+      consultStep2.style.display = 'block';
+      consultStepIndicator.textContent = '2 / 2';
+    };
+    // 2페이지: 등급 선택
+    const gradeBtns = consultStep2.querySelectorAll('.consult-grade-btn');
+    gradeBtns.forEach(btn => {
+      btn.onclick = function() {
+        gradeBtns.forEach(b => b.style.border = '1.5px solid #e5e7eb');
+        this.style.border = '2.5px solid #3b82f6';
+        consultForm.grade = this.getAttribute('data-value');
+        checkConsultFormValid();
+      };
+    });
+    // 2페이지: 지역 선택
+    const consultRegionBtn = document.getElementById('consultRegionBtn');
+    const consultRegionResult = document.getElementById('consultRegionResult');
+    consultRegionBtn.onclick = function() {
+      // 기존 위치 설정 팝업 재활용
+      popupSido.innerHTML = '<option value="">시/도 선택</option>' + sidoList.map(s => `<option value="${s}">${s}</option>`).join('');
+      popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
+      locationPopup.style.display = 'flex';
+      // 임시로 region 선택 완료 시 consultForm에 값 반영
+      popupConfirmBtn.onclick = function() {
+        consultForm.regionSido = popupSido.value;
+        consultForm.regionSigungu = popupSigungu.value;
+        consultRegionResult.textContent = popupSido.value + (popupSigungu.value ? ' ' + popupSigungu.value : '');
+        locationPopup.style.display = 'none';
+        checkConsultFormValid();
+      };
+      popupCancelBtn.onclick = function() {
+        locationPopup.style.display = 'none';
+      };
+    };
+    // 2페이지: 메모 입력
+    const consultMemo = document.getElementById('consultMemo');
+    consultMemo.oninput = function() {
+      consultForm.memo = consultMemo.value;
+      checkConsultFormValid();
+    };
+    function checkConsultFormValid() {
+      if (consultForm.grade && consultForm.regionSido) {
+        consultStep2Btn.disabled = false;
+        consultStep2Btn.style.opacity = 1;
+      } else {
+        consultStep2Btn.disabled = true;
+        consultStep2Btn.style.opacity = 0.7;
+      }
+    }
+    consultStep2Btn.onclick = function() {
+      if (!consultForm.grade || !consultForm.regionSido) return;
+      alert(
+        '[상담 신청 완료]\n' +
+        '- 서비스: ' + consultForm.service + '\n' +
+        '- 등급: ' + consultForm.grade + '\n' +
+        '- 지역: ' + consultForm.regionSido + (consultForm.regionSigungu ? ' ' + consultForm.regionSigungu : '') + '\n' +
+        (consultForm.memo ? '- 메모: ' + consultForm.memo : '')
+      );
+      consultPopup.style.display = 'none';
+      // 폼 초기화
+      consultForm = { service: '', grade: '', regionSido: '', regionSigungu: '', memo: '' };
+      consultStep1.style.display = 'block';
+      consultStep2.style.display = 'none';
+      consultStepIndicator.textContent = '1 / 2';
+      serviceItems.forEach(i => i.style.border = '1.5px solid #e5e7eb');
+      gradeBtns.forEach(b => b.style.border = '1.5px solid #e5e7eb');
+      consultMemo.value = '';
+      consultRegionResult.textContent = '';
+      consultStep1Next.disabled = true;
+      consultStep1Next.style.opacity = 0.7;
+      consultStep2Btn.disabled = true;
+      consultStep2Btn.style.opacity = 0.7;
+    };
+    openConsultBtn.onclick = function() {
+      consultPopup.style.display = 'flex';
+      consultStep1.style.display = 'block';
+      consultStep2.style.display = 'none';
+      consultStepIndicator.textContent = '1 / 2';
+    };
+    closeConsultPopup.onclick = function() {
+      consultPopup.style.display = 'none';
+    };
+  </script>
+</body>
+</html>
 
 
 
