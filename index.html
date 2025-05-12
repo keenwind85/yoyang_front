@@ -466,12 +466,34 @@
           });
         }
         // 내 위치로 찾기 버튼 클릭 시 위치 요청
+        async function getUserLocation() {
+          return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              reject(new Error('Geolocation not supported'));
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              err => {
+                reject(err);
+              },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+            );
+          });
+        }
         document.getElementById('getLocationBtn').onclick = async function() {
           try {
             const loc = await getUserLocation();
             showMap(loc.lat, loc.lng, true);
             updateUserLocation(loc.lat, loc.lng);
           } catch (e) {
+            alert('위치 정보를 가져올 수 없습니다.\n' +
+              (e && e.code !== undefined
+                ? `에러 코드: ${e.code}\n메시지: ${e.message}`
+                : e && e.message
+                  ? e.message
+                  : '알 수 없는 오류'));
+            console.error('Geolocation error:', e);
             handleLocationError();
           }
         };
