@@ -2,372 +2,701 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>홈 - 내 주변 추천 요양시설</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>내 주변 요양시설 찾기</title>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=111c602d0e830ef83899bfab32a148e6&autoload=false&libraries=services"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6/dist/umd/supabase.min.js"></script>
   <style>
-    body { margin:0; font-family:'Noto Sans KR',Arial,sans-serif; background:#f8fafc; color:#222; }
-    .main-wrapper { max-width:600px; margin:0 auto; padding-bottom:80px; }
-    header { position:sticky; top:0; background:#fff; padding:16px 0 10px 0; text-align:center; font-size:1.3rem; font-weight:700; color:#3b82f6; box-shadow:0 2px 8px rgba(0,0,0,0.03); z-index:10; }
-    .consult-banner { background:linear-gradient(90deg,#3b82f6 60%,#60a5fa 100%);color:#fff;border-radius:18px;margin:24px 16px 16px 16px;padding:28px 20px 24px 20px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden; }
-    .consult-banner .text h2 { font-size:1.18rem;margin:0 0 8px 0;font-weight:700; }
-    .consult-banner .text p { margin:0 0 14px 0;font-size:1rem;opacity:0.95; }
-    .consult-banner .consult-btn { background:#fff;color:#3b82f6;border:none;border-radius:8px;padding:8px 18px;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,0.10);transition:background 0.2s; }
-    .consult-banner .consult-btn:hover { background:#e0e7ff; }
-    .consult-banner .icon-anim { width:54px;height:54px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(59,130,246,0.13);animation:bounce 1.2s infinite cubic-bezier(.6,1.5,.6,1); }
-    @keyframes bounce { 0%{transform:translateY(0);} 20%{transform:translateY(-10px);} 40%{transform:translateY(0);} 60%{transform:translateY(-5px);} 80%{transform:translateY(0);} 100%{transform:translateY(0);} }
-    .section-title-row { display:flex; align-items:center; justify-content:space-between; margin:28px 14px 12px 18px; }
-    .section-title { font-size:1.13rem;font-weight:600;color:#2563eb; }
-    .recommend-list { margin:0 14px; }
-    .facility-item { background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(59,130,246,0.07);padding:18px 18px 14px 18px;margin-bottom:16px;cursor:pointer;transition:box-shadow 0.18s; }
-    .facility-item:hover { box-shadow:0 4px 18px rgba(59,130,246,0.13); }
-    .facility-title { font-size:1.08rem;font-weight:700;color:#222;margin-bottom:4px; }
-    .facility-meta { font-size:0.97rem;color:#666;margin-bottom:7px;display:flex;gap:10px; }
-    .facility-tags { display:flex;gap:7px;flex-wrap:wrap;margin-top:7px; }
-    .facility-tag { background:#e0e7ff;color:#3b82f6;border-radius:12px;padding:3px 12px;font-size:0.97rem;font-weight:500; }
-    .location-btn { background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:1.01rem;font-weight:600;cursor:pointer;transition:background 0.2s; margin-left:8px; }
-    .location-btn:hover { background:#2563eb; }
-    .location-msg { background:#f1f5f9;color:#3b82f6;border-radius:12px;padding:18px 0;text-align:center;font-size:1.07rem;font-weight:500;margin:18px 14px 0 14px; }
-    .loading { text-align:center;color:#3b82f6;font-weight:600;padding:32px 0; }
-    /* 위치 설정 팝업 */
-    #locationPopup { display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:999;align-items:center;justify-content:center; }
-    #locationPopup .popup-inner { background:#fff;border-radius:14px;padding:28px 24px;min-width:260px;box-shadow:0 4px 24px rgba(0,0,0,0.10); }
-    #locationPopup h4 { margin:0 0 18px 0;font-size:1.1rem; }
-    #locationPopup select { width:100%;padding:8px 6px;font-size:1rem;margin-bottom:14px; }
-    #locationPopup .popup-btn { width:100%;background:#3b82f6;color:#fff;padding:10px 0;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:8px; }
-    #locationPopup .popup-btn.cancel { background:#e5e7eb;color:#222;margin-bottom:0; }
-    .bottom-nav { position: fixed; bottom: 0; height: 60px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; align-items: center; z-index: 100; left: 0; right: 0; max-width: 600px; margin-left: auto; margin-right: auto; }
-    .bottom-nav .nav-btn { display: flex; flex-direction: column; align-items: center; color: #888; font-size: 0.93rem; text-decoration: none; transition: color 0.2s; }
-    .bottom-nav .nav-btn.active, .bottom-nav .nav-btn:hover { color: #3b82f6; }
-    .bottom-nav .nav-btn i { font-size: 1.3rem; margin-bottom: 2px; }
-    @media (max-width: 600px) { .bottom-nav { max-width: 100%; } }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body { background: #fafbfc; }
+    #mobileOnly { display: none; }
+    #mobileRoot { display: block; }
+    @media (min-width: 601px) {
+      #mobileOnly { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 1.2em; color: #e74c3c; background: #fff; }
+      #mobileRoot { display: none; }
+    }
+    @media (max-width: 600px) {
+      #mobileOnly { display: none; }
+      #mobileRoot { display: block; }
+      html, body { width: 100vw; height: 100vh; overflow-x: hidden; }
+    }
+    #topBar {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 52px;
+      background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      z-index: 2000; display: flex; align-items: center; padding: 0 8px;
+    }
+    #topBar .logo-area { flex: 0 0 auto; }
+    #topBar .search-area {
+      flex: 1 1 auto; display: flex; align-items: center; margin-left: 8px;
+      width: 100%;
+      gap: 0;
+    }
+    #topBar input[type="text"] {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 100vw;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px 0 0 6px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.2s;
+      height: 38px;
+      box-sizing: border-box;
+    }
+    #topBar input[type="text"]:focus { border-color: #e74c3c; }
+    #topBar button {
+      flex: 0 0 auto;
+      height: 38px;
+      padding: 0 16px;
+      border: none;
+      background: #e74c3c;
+      color: #fff;
+      border-radius: 0 6px 6px 0;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-left: -1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    #topBar button:hover { background: #c0392b; }
+    body { padding-top: 52px; }
+    #filterBar {
+      border-bottom:1px solid #f1f1f1; margin-top: 8px; padding-bottom: 0;
+      display: flex; gap: 6px; align-items: center; background: #fff; z-index:1999; position:relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      padding-left: 8px; padding-right: 8px;
+      scrollbar-width: none;
+      margin-bottom: 0;
+    }
+    #filterBar::-webkit-scrollbar { display: none; }
+    .filter-btn {
+      background:#f3f4f6; color:#444; border:none; border-radius:7px; padding:7px 16px; font-size:0.98em; font-weight:500; cursor:pointer; transition:background 0.18s, color 0.18s;
+      white-space: nowrap;
+      margin-right: 2px;
+      flex: 0 0 auto;
+      display: inline-block;
+    }
+    .filter-btn.selected {
+      background:#e74c3c; color:#fff;
+    }
+    #map { width: 100vw; height: calc(100vh - 52px - 44px); margin-top: 0; }
+    .facility-modal {
+      position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+      min-width: 80vw; max-width: 96vw; z-index: 1000; padding: 18px 10px;
+      display: none; flex-direction: column; gap: 10px;
+    }
+    .facility-modal.active { display: flex; }
+    .modal-close { position: absolute; right: 12px; top: 8px; font-size: 20px; cursor: pointer; }
+    .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 6px; }
+    .modal-section { margin-bottom: 4px; font-size: 0.98em; }
+    .modal-label { color: #888; font-size: 0.95em; margin-right: 4px; }
+    .modal-value { font-weight: 500; }
+    .modal-staff { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-bg { position: fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.18); z-index:999; display:none; }
+    .modal-bg.active { display:block; }
+    #kakaoPlaceThumb { max-width:90vw; border-radius:10px; display:none; margin-top:16px; }
+    #searchResults {
+      position:absolute; left:0; right:0; top:40px; background:#fff; border:1px solid #ddd; border-radius:0 0 8px 8px; box-shadow:0 4px 16px rgba(0,0,0,0.07); z-index:3000; display:none; max-height:180px; overflow-y:auto; font-size:0.98em;
+    }
+    .search-result-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f1f1; }
+    .search-result-item:last-child { border-bottom:none; }
+    @media (max-width: 400px) {
+      #topBar { height: 46px; padding: 0 6px; }
+      #topBar input[type="text"] { font-size: 0.95em; }
+      #topBar button { font-size: 0.95em; padding: 6px 10px; }
+      #filterBar { gap: 3px; }
+      .filter-btn { padding: 5px 7px; font-size: 0.93em; }
+      .facility-modal { min-width: 96vw; padding: 10px 2px; }
+    }
+    #radiusControl {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 2100;
+      background: rgba(255,255,255,0.95);
+      border-radius: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 6px 10px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 0.98em;
+    }
+    .radius-btn {
+      background: #f3f4f6;
+      color: #444;
+      border: none;
+      border-radius: 12px;
+      padding: 6px 14px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+    }
+    .radius-btn.selected {
+      background: #e74c3c;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
-  <div class="main-wrapper">
-    <header>홈 - 내 주변 추천 요양시설</header>
-    <!-- 전문가 상담 배너 -->
-    <div class="consult-banner">
-      <div class="text">
-        <h2>전문가와 요양 서비스 상담하기</h2>
-        <p>궁금한 점, 시설 선택 고민, 비용 안내 등<br>친절한 상담원이 도와드립니다.</p>
-        <button class="consult-btn" id="openConsultBtn">상담하기</button>
+  <div id="mobileOnly">모바일 환경에서만 이용 가능합니다.</div>
+  <div id="mobileRoot">
+    <div id="topBar">
+      <div class="logo-area">
+        <img src="/logo.png" alt="로고" style="height:28px;vertical-align:middle;" />
       </div>
-      <div class="icon-anim">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#3b82f6"/><path d="M16 9c-2.5 0-4.5 2-4.5 4.5S13.5 18 16 18s4.5-2 4.5-4.5S18.5 9 16 9zm0 7c-1.4 0-2.5-1.1-2.5-2.5S14.6 11 16 11s2.5 1.1 2.5 2.5S17.4 16 16 16z" fill="#fff"/><path d="M16 19c-3.3 0-6 2.7-6 6h2c0-2.2 1.8-4 4-4s4 1.8 4 4h2c0-3.3-2.7-6-6-6z" fill="#fff"/></svg>
-      </div>
-    </div>
-    <!-- 상담 폼 팝업 -->
-    <div id="consultPopup" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.28);z-index:2000;align-items:center;justify-content:center;">
-      <div id="consultPopupInner" style="background:#fff;border-radius:16px;max-width:380px;width:92vw;padding:0 0 24px 0;box-shadow:0 4px 32px rgba(0,0,0,0.13);position:relative;">
-        <button id="closeConsultPopup" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.7rem;color:#888;cursor:pointer;">&times;</button>
-        <div id="consultStep1" style="padding:32px 24px 18px 24px;display:block;">
-          <div style="font-size:1.13rem;font-weight:700;margin-bottom:8px;">어떤 돌봄 상담이 필요하세요?</div>
-          <div style="color:#555;font-size:1.01rem;margin-bottom:22px;">상담 진행을 위해 필요한 서비스를 선택해 주세요.</div>
-          <div class="consult-service-list">
-            <div class="consult-service-item" data-value="상담필요">
-              <div class="title">상담필요</div>
-              <div class="desc">잘 모르겠어요. 기초상담이 필요해요.<br><span style='color:#3b82f6;'>상담으로 자세한 돌봄 안내</span></div>
-            </div>
-            <div class="consult-service-item" data-value="주야간보호">
-              <div class="title">주야간보호</div>
-              <div class="desc">일정 시간 동안 돌봐줄 곳이 필요해요.<br><span style='color:#3b82f6;'>시설에서 최소 3~10시간 돌봄 지원</span></div>
-            </div>
-            <div class="consult-service-item" data-value="방문요양">
-              <div class="title">방문요양</div>
-              <div class="desc">집으로 와서 돌봐주세요.<br><span style='color:#3b82f6;'>요양보호사 방문, 일상/신체/정서 지원</span></div>
-            </div>
-            <div class="consult-service-item" data-value="방문목욕">
-              <div class="title">방문목욕</div>
-              <div class="desc">집으로 와서 목욕을 도와주세요.<br><span style='color:#3b82f6;'>전문 인력 방문, 주기적 목욕 서비스</span></div>
-            </div>
-            <div class="consult-service-item" data-value="방문간호">
-              <div class="title">방문간호</div>
-              <div class="desc">집에서 전문 간호 처치가 필요해요.<br><span style='color:#3b82f6;'>전문 간호 인력 방문, 의료 서비스</span></div>
-            </div>
-            <div class="consult-service-item" data-value="주야간보호+방문요양">
-              <div class="title">주야간보호 + 방문요양</div>
-              <div class="desc">시설과 집, 두 곳 모두 이용하고 싶어요.<br><span style='color:#3b82f6;'>시설+방문 돌봄 지원</span></div>
-            </div>
-          </div>
-          <button id="consultStep1Next" class="popup-btn" style="width:100%;margin-top:24px;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.07rem;font-weight:600;cursor:pointer;opacity:0.7;" disabled>다음</button>
-        </div>
-        <div id="consultStep2" style="padding:32px 24px 18px 24px;display:none;">
-          <div style="font-size:1.13rem;font-weight:700;margin-bottom:18px;">상담 신청 정보 입력</div>
-          <div style="margin-bottom:18px;">
-            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">1. 장기요양 등급이 있으신가요?</div>
-            <div class="consult-grade-list" style="display:flex;gap:10px;">
-              <button class="consult-grade-btn" data-value="있음" style="flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:1rem;font-weight:600;cursor:pointer;">장기요양등급이 있어요</button>
-              <button class="consult-grade-btn" data-value="없음" style="flex:1;padding:10px 0;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:1rem;font-weight:600;cursor:pointer;">등급이 없어요</button>
-            </div>
-          </div>
-          <div style="margin-bottom:18px;">
-            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">2. 서비스를 원하는 지역을 선택해 주세요.</div>
-            <button id="consultRegionBtn" style="width:100%;background:#f1f5f9;color:#3b82f6;border:none;border-radius:8px;padding:10px 0;font-size:1rem;font-weight:600;cursor:pointer;">지역 선택하기</button>
-            <div id="consultRegionResult" style="margin-top:7px;font-size:0.98rem;color:#2563eb;"></div>
-          </div>
-          <div style="margin-bottom:18px;">
-            <div style="font-size:1.01rem;font-weight:600;margin-bottom:7px;">3. 상담 시 남기고 싶은 요청사항/특이사항</div>
-            <textarea id="consultMemo" rows="3" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:1rem;resize:none;"></textarea>
-          </div>
-          <button id="consultSubmitBtn" class="popup-btn" style="width:100%;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.07rem;font-weight:600;cursor:pointer;opacity:0.7;" disabled>신청하기</button>
-        </div>
-        <div id="consultStepIndicator" style="text-align:center;margin-top:8px;font-size:0.98rem;color:#3b82f6;">1 / 2</div>
+      <div class="search-area">
+        <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off" />
+        <button id="searchBtn">검색</button>
+        <div id="searchResults"></div>
       </div>
     </div>
-    <!-- 위치 설정/추천 리스트 -->
-    <div class="section-title-row">
-      <div class="section-title">내 주변 추천 요양시설</div>
-      <button id="setLocationBtn" class="location-btn">내 위치 설정하기</button>
+    <div id="filterBar">
+      <button class="filter-btn" data-type="all">전체</button>
+      <button class="filter-btn" data-type="A01,A02,A03,A04,A05,AAA">노인요양시설</button>
+      <button class="filter-btn" data-type="B01,C01">방문요양</button>
+      <button class="filter-btn" data-type="B02,C02">방문목욕</button>
+      <button class="filter-btn" data-type="B03,C03,B04,C04">주야간보호</button>
+      <button class="filter-btn" data-type="B05,C05">방문간호</button>
+      <button class="filter-btn" data-type="C06">복지용구</button>
     </div>
-    <div id="recommendList" class="recommend-list">
-      <div class="loading">로딩중...</div>
+    <div id="map"></div>
+    <div id="radiusControl">
+      <button class="radius-btn" data-radius="1000">1km</button>
+      <button class="radius-btn" data-radius="3000">3km</button>
+      <button class="radius-btn" data-radius="5000">5km</button>
+      <button class="radius-btn" data-radius="7000">7km</button>
+      <button class="radius-btn" data-radius="10000">10km</button>
     </div>
-    <!-- 위치 설정 팝업 -->
-    <div id="locationPopup">
-      <div class="popup-inner">
-        <h4>내 위치 선택</h4>
-        <select id="popupSido"><option value="">시/도 선택</option></select>
-        <select id="popupSigungu"><option value="">시/군/구 선택(선택안해도 됨)</option></select>
-        <button id="popupConfirmBtn" class="popup-btn">선택 완료</button>
-        <button id="popupCancelBtn" class="popup-btn cancel">취소</button>
-      </div>
+    <div class="modal-bg" id="modalBg"></div>
+    <div class="facility-modal" id="facilityModal">
+      <span class="modal-close" id="modalClose">&times;</span>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-section"><span class="modal-label">설립 연차:</span><span class="modal-value" id="modalYear"></span></div>
+      <div class="modal-section"><span class="modal-label">시설 종류:</span><span class="modal-value" id="modalType"></span></div>
+      <div class="modal-section modal-staff" id="modalStaff"></div>
+      <div class="modal-section"><span class="modal-label">교통 정보:</span><span class="modal-value" id="modalTransport"></span></div>
+      <div class="modal-section"><span class="modal-label">주차 정보:</span><span class="modal-value" id="modalParking"></span></div>
     </div>
+    <img id="kakaoPlaceThumb" alt="시설 대표 이미지" />
   </div>
-  <!-- 하단 네비게이션 바 -->
-  <nav class="bottom-nav">
-    <a href="index.html" class="nav-btn active">
-      <i class="fas fa-home"></i>
-      홈
-    </a>
-    <a href="map.html" class="nav-btn">
-      <i class="fas fa-hospital"></i>
-      시설찾기
-    </a>
-    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
-      <i class="fas fa-book-open"></i>
-      요양정보
-    </a>
-    <a href="#" class="nav-btn" style="pointer-events:none;opacity:0.5;">
-      <i class="fas fa-user"></i>
-      내정보
-    </a>
-  </nav>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
   <script>
-    // Supabase 연결
-    const supabase = window.supabase.createClient('https://ecryblreqspjhmfpyjdn.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnlibHJlcXNwamhtZnB5amRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5ODgwMTcsImV4cCI6MjA1OTU2NDAxN30.6W-be268DsgQIbgJVk6PBzc-odeRO-cLFOzn7CRkgAw');
-    let userSido = localStorage.getItem('userSido') || '';
-    let userSigungu = localStorage.getItem('userSigungu') || '';
-    // 시도/시군구 목록
-    let sidoList = [], sigunguMap = {};
-    // 서비스 태그 정의
-    const serviceMap = [
-      { key: '노인공동생활가정', label: '노인공동생활가정' },
-      { key: '노인요양시설', label: '노인요양시설' },
-      { key: '주간보호센터', label: '주간보호센터' },
-      { key: '방문요양센터', label: '방문요양센터' },
-      { key: '방문간호', label: '방문간호' },
-      { key: '방문목욕', label: '방문목욕' }
-    ];
-    // 시도/시군구 목록 불러오기
-    async function fetchSidoSigunguList() {
-      const { data } = await supabase.from('longtermcare').select('sido, sigungu');
-      if (data) {
-        sidoList = [...new Set(data.map(f => f.sido))];
-        sigunguMap = {};
-        data.forEach(f => {
-          if (!sigunguMap[f.sido]) sigunguMap[f.sido] = new Set();
-          sigunguMap[f.sido].add(f.sigungu);
-        });
-        Object.keys(sigunguMap).forEach(sido => {
-          sigunguMap[sido] = Array.from(sigunguMap[sido]);
-        });
+    let currentFilterType = 'all';
+    let currentRadius = 1000; // 기본값 1km
+    let currentUserLat = null;
+    let currentUserLng = null;
+
+    const supabase = window.supabase.createClient(
+      'https://ecryblreqspjhmfpyjdn.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnlibHJlcXNwamhtZnB5amRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM5ODgwMTcsImV4cCI6MjA1OTU2NDAxN30.6W-be268DsgQIbgJVk6PBzc-odeRO-cLFOzn7CRkgAw'
+    );
+
+    // 지도 레벨에 따라 반경(m) 반환
+    function getRadiusByLevel(level) {
+      switch (level) {
+        case 1: return 1000;   // 1km
+        case 2: return 2000;   // 2km
+        case 3: return 3000;   // 3km
+        case 4: return 5000;   // 5km
+        case 5: return 7000;   // 7km
+        case 6: return 10000;  // 10km
+        case 7: return 15000;  // 15km
+        default: return 3000;  // 기본값
       }
     }
-    // 위치 설정 팝업 열기
-    const setLocationBtn = document.getElementById('setLocationBtn');
-    const locationPopup = document.getElementById('locationPopup');
-    const popupSido = document.getElementById('popupSido');
-    const popupSigungu = document.getElementById('popupSigungu');
-    const popupConfirmBtn = document.getElementById('popupConfirmBtn');
-    const popupCancelBtn = document.getElementById('popupCancelBtn');
-    setLocationBtn.onclick = function() {
-      popupSido.innerHTML = '<option value="">시/도 선택</option>' + sidoList.map(s => `<option value="${s}">${s}</option>`).join('');
-      popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
-      locationPopup.style.display = 'flex';
-    };
-    popupSido.onchange = function() {
-      const sido = popupSido.value;
-      if (sido && sigunguMap[sido]) {
-        popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>' + sigunguMap[sido].map(s => `<option value="${s}">${s}</option>`).join('');
-      } else {
-        popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
-      }
-    };
-    popupCancelBtn.onclick = function() {
-      locationPopup.style.display = 'none';
-    };
-    popupConfirmBtn.onclick = function() {
-      userSido = popupSido.value;
-      userSigungu = popupSigungu.value;
-      if (!userSido) {
-        alert('시/도를 선택해 주세요.');
-        return;
-      }
-      localStorage.setItem('userSido', userSido);
-      localStorage.setItem('userSigungu', userSigungu);
-      locationPopup.style.display = 'none';
-      renderRecommendFacilities();
-    };
-    // 추천 리스트 렌더링
-    async function renderRecommendFacilities() {
-      const recommendList = document.getElementById('recommendList');
-      recommendList.innerHTML = '<div class="loading">로딩중...</div>';
-      let { data, error } = await supabase.from('longtermcare').select('name, address, sido, sigungu, start_date, lat, lng, services');
-      if (error || !data) {
-        recommendList.innerHTML = '<div class="loading">데이터를 불러올 수 없습니다.</div>';
-        return;
-      }
-      // 위치 미설정 시 안내
-      if (!userSido) {
-        recommendList.innerHTML = '<div class="location-msg">내 주변 추천 요양시설을 선택해 주세요<br><button class="location-btn" onclick="document.getElementById(\'setLocationBtn\').click()">내 위치 설정하기</button></div>';
-        return;
-      }
-      // 위치 설정 시 필터링
-      let facilities = data.filter(f => f.sido === userSido && (!userSigungu || f.sigungu === userSigungu));
-      // 위치 미설정/매칭 실패 시 랜덤 추천
-      if (facilities.length === 0) facilities = data.sort(() => Math.random() - 0.5).slice(0, 10);
-      recommendList.innerHTML = facilities.map(f => {
-        const year = (f.start_date || '').slice(0, 4);
-        // 서비스 태그 추출
-        const serviceTags = [];
-        if (f.services) {
-          serviceMap.forEach(s => {
-            if (f.services.includes(s.key)) serviceTags.push(`<span class=\'facility-tag\'>${s.label}</span>`);
+
+    kakao.maps.load(async function() {
+      // 지도, 마커, 오버레이 등 변수 선언
+      let map = null;
+      let userMarker, userPulse, userCircle, userCircleAnim;
+      let markers = [];
+      let overlays = [];
+      let watchId = null;
+      let mapMoveListenerAdded = false;
+
+      // 반드시 이 안에 renderFacilities 함수를 선언!
+      async function renderFacilities(userLat, userLng, radius = currentRadius, filterType = currentFilterType) {
+        console.log('renderFacilities 호출! filterType:', filterType);
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+        overlays.forEach(o => o.setMap(null));
+        overlays = [];
+        // facilities_with_geojson에서 반경 내 시설 정보만 조회
+        const { data: facilities, error } = await supabase
+          .rpc('get_facilities_within_radius', {
+            lat: userLat,   // 위도
+            lng: userLng,   // 경도
+            radius: radius
           });
+        console.log('Supabase RPC 파라미터:', { lat: userLat, lng: userLng, radius: radius });
+        console.log('Supabase RPC 결과 data:', facilities);
+        console.log('Supabase RPC error:', error);
+        if (error || !facilities || facilities.length === 0) {
+          console.log('시설 정보를 찾을 수 없습니다');
+          return;
         }
-        return `<div class=\'facility-item\' onclick=\'window.location.href="facility-detail.html?name=${encodeURIComponent(f.name)}&address=${encodeURIComponent(f.address || "")}"\'>
-          <div class=\'facility-title\'>${f.name}</div>
-          <div class=\'facility-meta\'>
-            <span>${f.sido || ''} ${f.sigungu || ''}</span>
-            ${year ? `<span>설립: ${year}</span>` : ''}
-          </div>
-          <div class=\'facility-tags\'>${serviceTags.join('')}</div>
-        </div>`;
-      }).join('');
-    }
-    // 시도/시군구 목록 먼저 불러오고 렌더링
-    fetchSidoSigunguList().then(renderRecommendFacilities);
-    // 상담 폼 팝업 관련
-    const openConsultBtn = document.getElementById('openConsultBtn');
-    const consultPopup = document.getElementById('consultPopup');
-    const consultPopupInner = document.getElementById('consultPopupInner');
-    const closeConsultPopup = document.getElementById('closeConsultPopup');
-    const consultStep1 = document.getElementById('consultStep1');
-    const consultStep2 = document.getElementById('consultStep2');
-    const consultStep1Next = document.getElementById('consultStep1Next');
-    const consultStep2Btn = document.getElementById('consultSubmitBtn');
-    const consultStepIndicator = document.getElementById('consultStepIndicator');
-    let consultForm = { service: '', grade: '', regionSido: '', regionSigungu: '', memo: '' };
-    // 1페이지: 서비스 선택
-    const serviceItems = consultStep1.querySelectorAll('.consult-service-item');
-    serviceItems.forEach(item => {
-      item.onclick = function() {
-        serviceItems.forEach(i => i.style.border = '1.5px solid #e5e7eb');
-        this.style.border = '2.5px solid #3b82f6';
-        consultForm.service = this.getAttribute('data-value');
-        consultStep1Next.disabled = false;
-        consultStep1Next.style.opacity = 1;
-      };
-    });
-    consultStep1Next.onclick = function() {
-      consultStep1.style.display = 'none';
-      consultStep2.style.display = 'block';
-      consultStepIndicator.textContent = '2 / 2';
-    };
-    // 2페이지: 등급 선택
-    const gradeBtns = consultStep2.querySelectorAll('.consult-grade-btn');
-    gradeBtns.forEach(btn => {
-      btn.onclick = function() {
-        gradeBtns.forEach(b => b.style.border = '1.5px solid #e5e7eb');
-        this.style.border = '2.5px solid #3b82f6';
-        consultForm.grade = this.getAttribute('data-value');
-        checkConsultFormValid();
-      };
-    });
-    // 2페이지: 지역 선택
-    const consultRegionBtn = document.getElementById('consultRegionBtn');
-    const consultRegionResult = document.getElementById('consultRegionResult');
-    consultRegionBtn.onclick = function() {
-      // 기존 위치 설정 팝업 재활용
-      popupSido.innerHTML = '<option value="">시/도 선택</option>' + sidoList.map(s => `<option value="${s}">${s}</option>`).join('');
-      popupSigungu.innerHTML = '<option value="">시/군/구 선택(선택안해도 됨)</option>';
-      locationPopup.style.display = 'flex';
-      // 임시로 region 선택 완료 시 consultForm에 값 반영
-      popupConfirmBtn.onclick = function() {
-        consultForm.regionSido = popupSido.value;
-        consultForm.regionSigungu = popupSigungu.value;
-        consultRegionResult.textContent = popupSido.value + (popupSigungu.value ? ' ' + popupSigungu.value : '');
-        locationPopup.style.display = 'none';
-        checkConsultFormValid();
-      };
-      popupCancelBtn.onclick = function() {
-        locationPopup.style.display = 'none';
-      };
-    };
-    // 2페이지: 메모 입력
-    const consultMemo = document.getElementById('consultMemo');
-    consultMemo.oninput = function() {
-      consultForm.memo = consultMemo.value;
-      checkConsultFormValid();
-    };
-    function checkConsultFormValid() {
-      if (consultForm.grade && consultForm.regionSido) {
-        consultStep2Btn.disabled = false;
-        consultStep2Btn.style.opacity = 1;
-      } else {
-        consultStep2Btn.disabled = true;
-        consultStep2Btn.style.opacity = 0.7;
+        // 필터 타입 세트 준비
+        let typeSet = null;
+        if (filterType && filterType !== 'all') {
+          typeSet = new Set(filterType.split(','));
+        }
+        console.log('renderFacilities filterType:', filterType, 'typeSet:', typeSet);
+        for (const fac of facilities) {
+          const typeCode = fac.admin_type_code;
+          console.log('fac.id:', fac.id, 'typeCode:', typeCode, '필터:', typeSet);
+          if (!typeCode) continue;
+          if (typeSet && !typeSet.has(typeCode)) continue;
+          let lng, lat;
+          if (fac.geojson) {
+            try {
+              const geo = JSON.parse(fac.geojson);
+              [lng, lat] = geo.coordinates;
+            } catch (e) {
+              console.log('GeoJSON 파싱 실패:', fac.geojson);
+              continue;
+            }
+          } else {
+            console.log('좌표 없음:', fac);
+            continue;
+          }
+          console.log('시설명:', fac.admin_name, 'lat:', lat, 'lng:', lng);
+          if (isNaN(lat) || isNaN(lng)) {
+            console.log('좌표 NaN:', fac);
+            continue;
+          }
+          const dist = getDistance(userLat, userLng, lat, lng);
+          console.log('거리:', dist);
+          // if (dist > radius) continue;
+          const markerImage = new kakao.maps.MarkerImage(
+            'assets/marker_carehome.svg',
+            new kakao.maps.Size(40, 40),
+            { offset: new kakao.maps.Point(20, 40) }
+          );
+          const marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(lat, lng),
+            map: map,
+            image: markerImage,
+            title: fac.admin_name
+          });
+          marker.facility = fac;
+          kakao.maps.event.addListener(marker, 'click', () => {
+            window.location.href = `facility-detail.html?id=${encodeURIComponent(fac.id)}`;
+          });
+          markers.push(marker);
+          // === 시설명 커스텀 오버레이 추가 ===
+          const overlayContent = `
+            <div class="facility-name-overlay" data-id="${fac.id}" style="
+              background:rgba(255,255,255,0.95);
+              border-radius:6px;
+              padding:2px 8px;
+              font-size:14px;
+              color:#222;
+              box-shadow:0 2px 6px rgba(0,0,0,0.07);
+              border:1px solid #eee;
+              margin-top:4px;
+              white-space:nowrap;
+              cursor:pointer;
+              pointer-events:auto;
+              user-select:none;
+              ">
+              ${fac.admin_name}
+            </div>
+          `;
+          const nameOverlay = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(lat, lng),
+            content: overlayContent,
+            yAnchor: -0.2 // 마커 아래에 위치하도록 조정
+          });
+          nameOverlay.setMap(map);
+          overlays.push(nameOverlay);
+          // 오버레이 클릭 이벤트(동적 DOM이므로 setTimeout으로 보장)
+          setTimeout(() => {
+            const overlayDiv = document.querySelector(`.facility-name-overlay[data-id='${fac.id}']`);
+            if (overlayDiv) {
+              overlayDiv.onclick = (e) => {
+                window.location.href = `facility-detail.html?id=${encodeURIComponent(fac.id)}`;
+                e.stopPropagation();
+              };
+            }
+          }, 0);
+        }
       }
-    }
-    consultStep2Btn.onclick = function() {
-      if (!consultForm.grade || !consultForm.regionSido) return;
-      alert(
-        '[상담 신청 완료]\n' +
-        '- 서비스: ' + consultForm.service + '\n' +
-        '- 등급: ' + consultForm.grade + '\n' +
-        '- 지역: ' + consultForm.regionSido + (consultForm.regionSigungu ? ' ' + consultForm.regionSigungu : '') + '\n' +
-        (consultForm.memo ? '- 메모: ' + consultForm.memo : '')
-      );
-      consultPopup.style.display = 'none';
-      // 폼 초기화
-      consultForm = { service: '', grade: '', regionSido: '', regionSigungu: '', memo: '' };
-      consultStep1.style.display = 'block';
-      consultStep2.style.display = 'none';
-      consultStepIndicator.textContent = '1 / 2';
-      serviceItems.forEach(i => i.style.border = '1.5px solid #e5e7eb');
-      gradeBtns.forEach(b => b.style.border = '1.5px solid #e5e7eb');
-      consultMemo.value = '';
-      consultRegionResult.textContent = '';
-      consultStep1Next.disabled = true;
-      consultStep1Next.style.opacity = 0.7;
-      consultStep2Btn.disabled = true;
-      consultStep2Btn.style.opacity = 0.7;
-    };
-    openConsultBtn.onclick = function() {
-      consultPopup.style.display = 'flex';
-      consultStep1.style.display = 'block';
-      consultStep2.style.display = 'none';
-      consultStepIndicator.textContent = '1 / 2';
-    };
-    closeConsultPopup.onclick = function() {
-      consultPopup.style.display = 'none';
-    };
+
+      // 지도 초기화
+      function showMap(lat, lng, useTracking = true) {
+        const container = document.getElementById('map');
+        if (!map) {
+          map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(lat, lng), level: 5 });
+          if (!mapMoveListenerAdded) {
+            addMapMoveListener();
+            mapMoveListenerAdded = true;
+          }
+        } else {
+          map.setCenter(new kakao.maps.LatLng(lat, lng));
+        }
+        // 지도 새로 생성 시 마커/애니메이션 관련 변수 모두 초기화
+        if (userPulse && userPulse.parentNode) userPulse.parentNode.removeChild(userPulse);
+        userPulse = null;
+        userCircle = null;
+        userCircleAnim = null;
+        if (useTracking) startLocationTracking();
+      }
+      // 내 위치 실시간 추적
+      function startLocationTracking() {
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(
+          pos => {
+            currentUserLat = pos.coords.latitude;
+            currentUserLng = pos.coords.longitude;
+            updateUserLocation(currentUserLat, currentUserLng);
+          },
+          err => {
+            console.error('위치 추적 실패:', err);
+          },
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+        );
+      }
+      // 내 위치 애니메이션/원 위치 갱신 (kakao 마커 없이)
+      function updateUserLocation(lat, lng) {
+        currentUserLat = lat;
+        currentUserLng = lng;
+        if (!map) return;
+        // userPulse(빨간 원형 점)
+        const mapContainer = document.getElementById('map');
+        if (!userPulse) {
+          userPulse = document.createElement('div');
+          userPulse.style.position = 'absolute';
+          userPulse.style.width = '32px';
+          userPulse.style.height = '32px';
+          userPulse.style.pointerEvents = 'none';
+          userPulse.style.zIndex = '3000';
+          userPulse.innerHTML = '<div id="pulseDot" style="width:16px;height:16px;background:#e74c3c;border-radius:50%;position:absolute;left:8px;top:8px;box-shadow:0 0 8px #e74c3c88;"></div>';
+          mapContainer.appendChild(userPulse);
+          let scale = 1, growing = true;
+          function animatePulse() {
+            scale += (growing ? 0.03 : -0.03);
+            if (scale > 1.4) growing = false;
+            if (scale < 1.0) growing = true;
+            userPulse.firstChild.style.transform = `scale(${scale})`;
+            requestAnimationFrame(animatePulse);
+          }
+          animatePulse();
+        }
+        // 위치 갱신
+        const proj = map.getProjection();
+        const myPoint = proj.pointFromCoords(new kakao.maps.LatLng(lat, lng));
+        const center = map.getCenter();
+        const centerPoint = proj.pointFromCoords(center);
+        const mapWidth = mapContainer.offsetWidth;
+        const mapHeight = mapContainer.offsetHeight;
+        // 내 위치의 map 컨테이너 내부 좌표 계산
+        const x = (myPoint.x - centerPoint.x) + mapWidth / 2 - 16;
+        const y = (myPoint.y - centerPoint.y) + mapHeight / 2 - 16;
+        userPulse.style.left = x + 'px';
+        userPulse.style.top = y + 'px';
+        // 반경 원
+        const radius = getRadiusByLevel(map.getLevel());
+        if (!userCircle) {
+          userCircle = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(lat, lng),
+            radius: radius,
+            strokeWeight: 0,
+            strokeColor: '#e74c3c',
+            strokeOpacity: 0.2,
+            fillColor: '#e74c3c',
+            fillOpacity: 0.15,
+            map: map
+          });
+        } else {
+          userCircle.setPosition(new kakao.maps.LatLng(lat, lng));
+          userCircle.setRadius(radius);
+        }
+        // 퍼지는 애니메이션 원
+        if (!userCircleAnim) {
+          userCircleAnim = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(lat, lng),
+            radius: radius,
+            strokeWeight: 0,
+            fillColor: '#e74c3c',
+            fillOpacity: 0.08,
+            map: map
+          });
+          let animR = radius;
+          function animateCircle() {
+            animR += 2;
+            if (animR > radius * 1.7) animR = radius;
+            userCircleAnim.setRadius(animR);
+            userCircleAnim.setPosition(new kakao.maps.LatLng(lat, lng));
+            requestAnimationFrame(animateCircle);
+          }
+          animateCircle();
+        } else {
+          userCircleAnim.setPosition(new kakao.maps.LatLng(lat, lng));
+          userCircleAnim.setRadius(radius);
+        }
+      }
+      // 지도 이동/확대/축소 시 내 위치 애니메이션 위치 재조정
+      function addMapMoveListener() {
+        kakao.maps.event.addListener(map, 'zoom_changed', function() {
+          if (currentUserLat !== null && currentUserLng !== null) {
+            const radius = getRadiusByLevel(map.getLevel());
+            renderFacilities(currentUserLat, currentUserLng, radius, currentFilterType);
+          }
+        });
+        kakao.maps.event.addListener(map, 'center_changed', function() {
+          if (currentUserLat !== null && currentUserLng !== null) {
+            updateUserLocation(currentUserLat, currentUserLng);
+          }
+        });
+      }
+      // 진입 시 바로 위치 요청
+      try {
+        const loc = await getUserLocation();
+        showMap(loc.lat, loc.lng, true);
+        updateUserLocation(loc.lat, loc.lng);
+      } catch (e) {
+        handleLocationError();
+      }
+      function handleLocationError() {
+        alert('위치 정보를 가져올 수 없습니다. 기본 위치(서울시청)로 이동합니다.');
+        const defaultLat = 37.5665;
+        const defaultLng = 126.9780;
+        showMap(defaultLat, defaultLng, false); // 위치 추적 비활성화
+        updateUserLocation(defaultLat, defaultLng);
+        renderFacilities(defaultLat, defaultLng, getRadiusByLevel(map.getLevel()), currentFilterType);
+      }
+
+      // 시설 종류 변환
+      function convertType(code) {
+        if (["A01","A02","A03","A04","A05","AAA"].includes(code)) return "노인요양시설";
+        if (["B01","C01"].includes(code)) return "방문요양";
+        if (["B02","C02"].includes(code)) return "방문목욕";
+        if (["B03","C03","B04","C04"].includes(code)) return "주야간보호";
+        if (["B05","C05"].includes(code)) return "방문간호";
+        if (code === "C06") return "복지용구";
+        return code;
+      }
+
+      // 거리 계산 함수 (Haversine)
+      function getDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const toRad = x => x * Math.PI / 180;
+        const dLat = toRad(lat2-lat1);
+        const dLng = toRad(lng2-lng1);
+        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+        return 2 * R * Math.asin(Math.sqrt(a));
+      }
+
+      // 시설 상세 정보 모달 표시
+      async function showFacilityModal(fac) {
+        document.getElementById('modalTitle').textContent = fac.admin_name;
+        // 설립 연차
+        let year = '';
+        if (fac.install_date && fac.install_date.length >= 4) {
+          const y = fac.install_date.slice(0,4);
+          const now = new Date().getFullYear();
+          year = `${y}년 (${now-parseInt(y)+1}년차)`;
+        }
+        document.getElementById('modalYear').textContent = year;
+        // 시설 종류
+        document.getElementById('modalType').textContent = convertType(fac.admin_type_code);
+        // 직원 정보
+        const { data: staff } = await supabase.from('staff_status').select('*').eq('facility_id', fac.id);
+        let staffStrs = [];
+        if (staff && staff.length > 0) {
+          const s = staff[0];
+          if (parseInt(s.social_worker) > 0) staffStrs.push(`사회복지사 ${s.social_worker}명`);
+          const doctor = (parseInt(s.doctor_regular)||0) + (parseInt(s.doctor_parttime)||0);
+          if (doctor > 0) staffStrs.push(`의사 ${doctor}명`);
+          const nurse = (parseInt(s.nurse)||0) + (parseInt(s.nurse_aide)||0);
+          if (nurse > 0) staffStrs.push(`간호사 ${nurse}명`);
+          const caregiver = (parseInt(s.caregiver_level1)||0) + (parseInt(s.caregiver_level2)||0);
+          if (caregiver > 0) staffStrs.push(`요양보호사 ${caregiver}명`);
+        }
+        document.getElementById('modalStaff').textContent = staffStrs.join(' / ');
+        // 교통/주차 정보
+        document.getElementById('modalTransport').textContent = fac.transport_desc || '-';
+        document.getElementById('modalParking').textContent = fac.parking_info || '-';
+        // 모달 표시
+        document.getElementById('facilityModal').classList.add('active');
+        document.getElementById('modalBg').classList.add('active');
+
+        // 썸네일 요청
+        const kakaoApiKey = 'YOUR_KAKAO_REST_API_KEY'; // 본인 REST API 키로 교체
+        const query = encodeURIComponent(`${fac.admin_name} ${fac.address}`);
+        const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${query}`;
+
+        fetch(url, {
+          headers: { Authorization: `KakaoAK ${kakaoApiKey}` }
+        })
+          .then(res => res.json())
+          .then(async data => {
+            if (data.documents && data.documents.length > 0) {
+              const place = data.documents[0];
+              // 프록시 서버로 썸네일 요청
+              const proxyUrl = `http://localhost:3001/kakao-thumbnail?placeId=${place.id}`;
+              const thumbRes = await fetch(proxyUrl);
+              const thumbData = await thumbRes.json();
+              if (thumbData.thumbnail) {
+                document.getElementById('kakaoPlaceThumb').src = thumbData.thumbnail;
+                document.getElementById('kakaoPlaceThumb').style.display = 'block';
+              }
+            }
+          });
+      }
+
+      // 모달 닫기
+      document.getElementById('modalClose').onclick = hideModal;
+      document.getElementById('modalBg').onclick = hideModal;
+      function hideModal() {
+        document.getElementById('facilityModal').classList.remove('active');
+        document.getElementById('modalBg').classList.remove('active');
+      }
+
+      // 메인 실행
+      let userLoc = null;
+      let lastRenderId = 0;
+      function startMapWithLocation(loc) {
+        userLoc = loc;
+        showMap(loc.lat, loc.lng);
+        let renderId = ++lastRenderId;
+        renderFacilities(loc.lat, loc.lng, currentRadius, currentFilterType).then(() => {
+          if (renderId !== lastRenderId) return; // race condition 방지
+        });
+        kakao.maps.event.addListener(map, 'zoom_changed', function() {
+          let renderId = ++lastRenderId;
+          renderFacilities(userLoc.lat, userLoc.lng, currentRadius, currentFilterType).then(() => {
+            if (renderId !== lastRenderId) return;
+          });
+        });
+      }
+
+      function parseWKTPoint(wkt) {
+        // 예: "POINT(127.123 37.456)"
+        if (!wkt || typeof wkt !== 'string') return null;
+        const match = wkt.match(/POINT\\s*\\(([-\\d\\.]+)\\s+([-\\d\\.]+)\\)/);
+        if (!match) return null;
+        return [parseFloat(match[1]), parseFloat(match[2])]; // [lng, lat]
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const facilityId = urlParams.get('id');
+
+      const { data, error } = await supabase
+        .from('facilities_with_geojson')
+        .select('*')
+        .eq('id', facilityId)
+        .single();
+
+      if (error || !data) {
+        // "시설 정보를 찾을 수 없습니다" 안내
+      } else {
+        // data로 상세페이지 렌더링
+        showFacilityModal(data);
+      }
+
+      // --- 검색창 실시간 한글 시설명 검색 및 팝업 구현 ---
+      const searchInput = document.getElementById('searchInput');
+      const searchResults = document.getElementById('searchResults');
+      let searchTimeout = null;
+      searchInput.addEventListener('input', function(e) {
+        const keyword = searchInput.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+        if (!keyword || !/^[가-힣]+/.test(keyword)) {
+          searchResults.style.display = 'none';
+          searchResults.innerHTML = '';
+          return;
+        }
+        searchTimeout = setTimeout(async () => {
+          // Supabase에서 admin_name LIKE 검색
+          const { data, error } = await supabase
+            .from('facilities_with_geojson')
+            .select('id, admin_name')
+            .ilike('admin_name', `%${keyword}%`)
+            .limit(10);
+          if (error || !data || data.length === 0) {
+            searchResults.innerHTML = '<div style="padding:14px 18px; color:#888;">검색 결과가 없습니다</div>';
+            searchResults.style.display = 'block';
+            return;
+          }
+          searchResults.innerHTML = data.map(fac =>
+            `<div class="search-result-item" data-id="${fac.id}" style="padding:12px 18px; cursor:pointer; border-bottom:1px solid #f1f1f1; font-size:1.07em;">${fac.admin_name}</div>`
+          ).join('');
+          searchResults.style.display = 'block';
+        }, 200);
+      });
+      // 검색 결과 클릭 시 상세페이지 이동
+      searchResults.addEventListener('mousedown', function(e) {
+        const item = e.target.closest('.search-result-item');
+        if (item) {
+          const id = item.getAttribute('data-id');
+          window.location.href = `facility-detail.html?id=${encodeURIComponent(id)}`;
+        }
+      });
+      // input 이외 클릭 시 검색 결과 닫기
+      document.addEventListener('mousedown', function(e) {
+        if (!searchResults.contains(e.target) && e.target !== searchInput) {
+          searchResults.style.display = 'none';
+        }
+      });
+
+      // 필터 버튼 클릭 이벤트
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          currentFilterType = btn.dataset.type;
+          console.log('필터 버튼 클릭! currentFilterType:', currentFilterType);
+          if (userLoc) {
+            await renderFacilities(userLoc.lat, userLoc.lng, currentRadius, currentFilterType);
+          } else {
+            // 위치 정보가 없으면 서울시청 좌표로 마커 갱신
+            await renderFacilities(37.5665, 126.9780, currentRadius, currentFilterType);
+          }
+        });
+      });
+      // 최초 전체 선택
+      document.querySelector('.filter-btn[data-type="all"]').classList.add('selected');
+
+      // DOM이 모두 렌더링된 후 바로 실행
+      function setupRadiusButtons() {
+        const radiusBtns = document.querySelectorAll('.radius-btn');
+        function selectRadius(radius) {
+          currentRadius = radius;
+          radiusBtns.forEach(btn => {
+            if (parseInt(btn.dataset.radius) === radius) {
+              btn.classList.add('selected');
+            } else {
+              btn.classList.remove('selected');
+            }
+          });
+          // 시설 재렌더링
+          if (currentUserLat !== null && currentUserLng !== null) {
+            renderFacilities(currentUserLat, currentUserLng, currentRadius, currentFilterType);
+          } else {
+            alert('내 위치 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
+          }
+        }
+        radiusBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            selectRadius(parseInt(btn.dataset.radius));
+          });
+        });
+        // 최초 1km 선택
+        selectRadius(currentRadius);
+      }
+      setupRadiusButtons();
+    });
   </script>
 </body>
 </html>
-
-
-
