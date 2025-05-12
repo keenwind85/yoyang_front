@@ -145,6 +145,51 @@
       background: #e74c3c;
       color: #fff;
     }
+    #modalSummaryBg {
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.18); z-index: 3001; display: none;
+    }
+    #facilitySummaryModal {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      width: 100vw; max-width: 100vw;
+      min-height: 18vh; max-height: 32vh;
+      background: #fff;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.13);
+      z-index: 3002;
+      display: none;
+      padding: 18px 18px 14px 18px;
+      box-sizing: border-box;
+      transition: transform 0.18s;
+      animation: slideUpSummary 0.22s cubic-bezier(.4,1.4,.6,1) 1;
+    }
+    @keyframes slideUpSummary {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    #facilitySummaryModal .summary-close {
+      position: absolute; right: 16px; top: 14px; font-size: 1.5em; color: #888; cursor: pointer; font-weight: 600;
+    }
+    #facilitySummaryModal .summary-title {
+      font-size: 1.18em; font-weight: bold; margin-bottom: 7px; color: #222;
+    }
+    #facilitySummaryModal .summary-row {
+      margin-bottom: 7px; color: #444; font-size: 1em;
+    }
+    #facilitySummaryModal .summary-label {
+      color: #888; margin-right: 4px; font-size: 0.97em;
+    }
+    #facilitySummaryModal .summary-staff {
+      color: #2563eb; font-size: 0.98em; margin-bottom: 7px;
+    }
+    #facilitySummaryModal .summary-detail-btn {
+      display: block; width: 100%; background: #e74c3c; color: #fff; border: none;
+      border-radius: 8px; padding: 12px 0; font-size: 1.08em; font-weight: 600;
+      margin-top: 10px; cursor: pointer; transition: background 0.18s;
+    }
+    #facilitySummaryModal .summary-detail-btn:hover {
+      background: #c0392b;
+    }
   </style>
 </head>
 <body>
@@ -196,6 +241,8 @@
       <div class="modal-section"><span class="modal-label">주차 정보:</span><span class="modal-value" id="modalParking"></span></div>
     </div>
     <img id="kakaoPlaceThumb" alt="시설 대표 이미지" />
+    <div id="modalSummaryBg" style="display:none;"></div>
+    <div id="facilitySummaryModal" style="display:none;"></div>
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -298,8 +345,49 @@
               title: fac.admin_name
             });
             marker.facility = fac;
-            kakao.maps.event.addListener(marker, 'click', () => {
-              window.location.href = `facility-detail.html?id=${encodeURIComponent(fac.id)}`;
+            // 마커 클릭 시 요약 모달 표시
+            kakao.maps.event.addListener(marker, 'click', async () => {
+              // Supabase에서 직원 정보 조회
+              let staffStrs = [];
+              try {
+                const { data: staff } = await supabase.from('staff_status').select('*').eq('facility_id', fac.id);
+                if (staff && staff.length > 0) {
+                  const s = staff[0];
+                  if (parseInt(s.social_worker) > 0) staffStrs.push(`사회복지사 ${s.social_worker}명`);
+                  const doctor = (parseInt(s.doctor_regular)||0) + (parseInt(s.doctor_parttime)||0);
+                  if (doctor > 0) staffStrs.push(`의사 ${doctor}명`);
+                  const nurse = (parseInt(s.nurse)||0) + (parseInt(s.nurse_aide)||0);
+                  if (nurse > 0) staffStrs.push(`간호사 ${nurse}명`);
+                  const caregiver = (parseInt(s.caregiver_level1)||0) + (parseInt(s.caregiver_level2)||0);
+                  if (caregiver > 0) staffStrs.push(`요양보호사 ${caregiver}명`);
+                }
+              } catch(e) {}
+              let year = '-';
+              if (fac.install_date && fac.install_date.length >= 4) {
+                const y = fac.install_date.slice(0,4);
+                const now = new Date().getFullYear();
+                year = `${y}년 (${now-parseInt(y)+1}년차)`;
+              }
+              // 모달 내용 생성
+              const modal = document.getElementById('facilitySummaryModal');
+              modal.innerHTML = `
+                <span class="summary-close">&times;</span>
+                <div class="summary-title">${fac.admin_name}</div>
+                <div class="summary-row"><span class="summary-label">설립 연차:</span>${year}</div>
+                <div class="summary-row summary-staff">${staffStrs.length > 0 ? staffStrs.join(' / ') : '직원 정보 없음'}</div>
+                <button class="summary-detail-btn">상세보기</button>
+              `;
+              // 모달/배경 표시
+              document.getElementById('modalSummaryBg').style.display = 'block';
+              modal.style.display = 'block';
+              // 닫기(X)
+              modal.querySelector('.summary-close').onclick = hideSummaryModal;
+              // 바깥 클릭
+              document.getElementById('modalSummaryBg').onclick = hideSummaryModal;
+              // 상세보기 버튼
+              modal.querySelector('.summary-detail-btn').onclick = function() {
+                window.location.href = `facility-detail.html?id=${encodeURIComponent(fac.id)}`;
+              };
             });
             markers.push(marker);
             // === 시설명 커스텀 오버레이 추가 ===
@@ -736,6 +824,12 @@
             zIndex: 1000,
             map: map
           });
+        }
+
+        // 요약 모달 닫기 함수
+        function hideSummaryModal() {
+          document.getElementById('facilitySummaryModal').style.display = 'none';
+          document.getElementById('modalSummaryBg').style.display = 'none';
         }
       });
     });
