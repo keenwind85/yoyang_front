@@ -266,7 +266,7 @@
     // 네이버 블로그 리뷰 함수 (주소 일부 포함 필터)
     async function loadNaverBlogReviews(facilityName, facilityAddress) {
       try {
-        const res = await fetch('http://localhost:3002/naver-blog?query=' + encodeURIComponent(facilityName));
+        const res = await fetch('https://yoyang-front.onrender.com/naver-blog?query=' + encodeURIComponent(facilityName));
         const data = await res.json();
         const blogList = document.getElementById('blogReviewList');
         if (data.items && data.items.length > 0) {
