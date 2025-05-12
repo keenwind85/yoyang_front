@@ -65,19 +65,18 @@
     #topBar button:hover { background: #c0392b; }
     body { padding-top: 52px; }
     #filterBar {
-      border-bottom:1px solid #f1f1f1; margin-top: 8px; padding-bottom: 0;
-      display: flex; gap: 6px; align-items: center; background: #fff; z-index:1999; position:relative;
+      border-bottom:1px solid #f1f1f1; margin-top: 8px; margin-bottom: 8px; padding-bottom: 0;
+      display: flex; gap: 8px; align-items: center; background: #fff; z-index:1999; position:relative;
       overflow-x: auto;
       overflow-y: hidden;
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
       padding-left: 8px; padding-right: 8px;
       scrollbar-width: none;
-      margin-bottom: 0;
     }
     #filterBar::-webkit-scrollbar { display: none; }
     .filter-btn {
-      background:#f3f4f6; color:#444; border:none; border-radius:7px; padding:7px 16px; font-size:0.98em; font-weight:500; cursor:pointer; transition:background 0.18s, color 0.18s;
+      background:#f3f4f6; color:#444; border:none; border-radius:7px; padding:9px 18px; font-size:1em; font-weight:500; cursor:pointer; transition:background 0.18s, color 0.18s;
       white-space: nowrap;
       margin-right: 2px;
       flex: 0 0 auto;
@@ -86,7 +85,7 @@
     .filter-btn.selected {
       background:#e74c3c; color:#fff;
     }
-    #map { width: 100vw; height: calc(100vh - 52px - 44px); margin-top: 0; }
+    #map { width: 100vw; height: calc(100vh - 52px - 44px - 8px); margin-top: 0; }
     .facility-modal {
       position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
       background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.2);
@@ -151,22 +150,24 @@
 <body>
   <div id="mobileOnly">모바일 환경에서만 이용 가능합니다.</div>
   <div id="mobileRoot">
-    <button id="getLocationBtn" style="
-      display:block; margin:18px auto 0 auto; background:#2563eb; color:#fff; font-size:1.08rem; font-weight:600;
-      border:none; border-radius:8px; padding:12px 32px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.07);">
-      <span style="font-size:1.2em; vertical-align:middle;">📍</span> 내 위치로 찾기
-    </button>
-    <div id="topBar">
-      <div class="logo-area">
-        <img src="/logo.png" alt="로고" style="height:28px;vertical-align:middle;" />
+    <div id="myLocationBtn" style="
+      position: absolute; right: 16px; top: 64px; z-index: 2200;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px; width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; padding:0;
+    ">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    </div>
+    <div id="topBar" style="padding: 0 8px;">
+      <div class="logo-area" style="flex: 0 0 auto; display: flex; align-items: center;">
+        <img src="/logo.png" alt="로고" style="height:32px;vertical-align:middle; margin-right:8px;" />
       </div>
-      <div class="search-area">
-        <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off" />
-        <button id="searchBtn">검색</button>
+      <div class="search-area" style="flex: 1 1 auto; display: flex; align-items: center; gap: 0; width: 100%;">
+        <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off" style="flex:1 1 auto; min-width:0; max-width:100vw; padding:8px 10px; border:1px solid #ddd; border-radius:6px 0 0 6px; font-size:1em; outline:none; height:38px; box-sizing:border-box;" />
+        <button id="searchBtn" style="height:38px; padding:0 16px; border:none; background:#e74c3c; color:#fff; border-radius:0 6px 6px 0; font-size:1em; cursor:pointer; margin-left:-1px; display:flex; align-items:center; justify-content:center; white-space:nowrap;">검색</button>
         <div id="searchResults"></div>
       </div>
     </div>
-    <div id="filterBar">
+    <div id="filterBar" style="margin-top: 8px; margin-bottom: 8px; padding-bottom: 0; border-bottom:1px solid #f1f1f1; display:flex; gap:8px; align-items:center; background:#fff; z-index:1999; position:relative; overflow-x:auto; overflow-y:hidden; white-space:nowrap; -webkit-overflow-scrolling:touch; padding-left:8px; padding-right:8px; scrollbar-width:none;">
       <button class="filter-btn" data-type="all">전체</button>
       <button class="filter-btn" data-type="A01,A02,A03,A04,A05,AAA">노인요양시설</button>
       <button class="filter-btn" data-type="B01,C01">방문요양</button>
@@ -175,6 +176,7 @@
       <button class="filter-btn" data-type="B05,C05">방문간호</button>
       <button class="filter-btn" data-type="C06">복지용구</button>
     </div>
+    <div style="height:8px;"></div>
     <div id="map"></div>
     <div id="radiusControl">
       <button class="radius-btn" data-radius="1000">1km</button>
@@ -225,6 +227,7 @@
         // 지도, 마커, 오버레이 등 변수 선언
         let map = null;
         let userMarker, userPulse, userCircle, userCircleAnim;
+        let radiusCircle = null; // 반경 시각화 원
         let markers = [];
         let overlays = [];
         let watchId = null;
@@ -410,45 +413,15 @@
           const y = (myPoint.y - centerPoint.y) + mapHeight / 2 - 16;
           userPulse.style.left = x + 'px';
           userPulse.style.top = y + 'px';
-          // 반경 원
-          const radius = getRadiusByLevel(map.getLevel());
-          if (!userCircle) {
-            userCircle = new kakao.maps.Circle({
-              center: new kakao.maps.LatLng(lat, lng),
-              radius: radius,
-              strokeWeight: 0,
-              strokeColor: '#e74c3c',
-              strokeOpacity: 0.2,
-              fillColor: '#e74c3c',
-              fillOpacity: 0.15,
-              map: map
-            });
-          } else {
-            userCircle.setPosition(new kakao.maps.LatLng(lat, lng));
-            userCircle.setRadius(radius);
+          // 반경 원 시각화
+          updateRadiusCircle(lat, lng, currentRadius);
+          if (userCircle) {
+            userCircle.setMap(null);
+            userCircle = null;
           }
-          // 퍼지는 애니메이션 원
-          if (!userCircleAnim) {
-            userCircleAnim = new kakao.maps.Circle({
-              center: new kakao.maps.LatLng(lat, lng),
-              radius: radius,
-              strokeWeight: 0,
-              fillColor: '#e74c3c',
-              fillOpacity: 0.08,
-              map: map
-            });
-            let animR = radius;
-            function animateCircle() {
-              animR += 2;
-              if (animR > radius * 1.7) animR = radius;
-              userCircleAnim.setRadius(animR);
-              userCircleAnim.setPosition(new kakao.maps.LatLng(lat, lng));
-              requestAnimationFrame(animateCircle);
-            }
-            animateCircle();
-          } else {
-            userCircleAnim.setPosition(new kakao.maps.LatLng(lat, lng));
-            userCircleAnim.setRadius(radius);
+          if (userCircleAnim) {
+            userCircleAnim.setMap(null);
+            userCircleAnim = null;
           }
         }
         // 지도 이동/확대/축소 시 내 위치 애니메이션 위치 재조정
@@ -481,22 +454,21 @@
             );
           });
         }
-        document.getElementById('getLocationBtn').onclick = async function() {
-          try {
-            const loc = await getUserLocation();
-            showMap(loc.lat, loc.lng, true);
-            updateUserLocation(loc.lat, loc.lng);
-          } catch (e) {
-            alert('위치 정보를 가져올 수 없습니다.\n' +
-              (e && e.code !== undefined
-                ? `에러 코드: ${e.code}\n메시지: ${e.message}`
-                : e && e.message
-                  ? e.message
-                  : '알 수 없는 오류'));
-            console.error('Geolocation error:', e);
-            handleLocationError();
-          }
-        };
+        // 첫 진입 시 자동으로 내 위치 요청
+        try {
+          const loc = await getUserLocation();
+          showMap(loc.lat, loc.lng, true);
+          updateUserLocation(loc.lat, loc.lng);
+        } catch (e) {
+          alert('위치 정보를 가져올 수 없습니다.\n' +
+            (e && e.code !== undefined
+              ? `에러 코드: ${e.code}\n메시지: ${e.message}`
+              : e && e.message
+                ? e.message
+                : '알 수 없는 오류'));
+          console.error('Geolocation error:', e);
+          handleLocationError();
+        }
         function handleLocationError() {
           alert('위치 정보를 가져올 수 없습니다. 기본 위치(서울시청)로 이동합니다.');
           const defaultLat = 37.5665;
@@ -713,6 +685,7 @@
             // 시설 재렌더링
             if (currentUserLat !== null && currentUserLng !== null) {
               renderFacilities(currentUserLat, currentUserLng, currentRadius, currentFilterType);
+              updateRadiusCircle(currentUserLat, currentUserLng, currentRadius);
             } else {
               alert('내 위치 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
             }
@@ -726,6 +699,44 @@
           selectRadius(currentRadius);
         }
         setupRadiusButtons();
+
+        // 내 위치 아이콘 버튼 클릭 시 내 위치 재요청
+        document.getElementById('myLocationBtn').onclick = async function() {
+          try {
+            const loc = await getUserLocation();
+            showMap(loc.lat, loc.lng, true);
+            updateUserLocation(loc.lat, loc.lng);
+            updateRadiusCircle(loc.lat, loc.lng, currentRadius);
+          } catch (e) {
+            alert('위치 정보를 가져올 수 없습니다.\n' +
+              (e && e.code !== undefined
+                ? `에러 코드: ${e.code}\n메시지: ${e.message}`
+                : e && e.message
+                  ? e.message
+                  : '알 수 없는 오류'));
+            console.error('Geolocation error:', e);
+            handleLocationError();
+          }
+        };
+
+        function updateRadiusCircle(lat, lng, radius) {
+          if (!map) return;
+          if (radiusCircle) {
+            radiusCircle.setMap(null);
+            radiusCircle = null;
+          }
+          radiusCircle = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(lat, lng),
+            radius: radius,
+            strokeWeight: 2,
+            strokeColor: '#e74c3c',
+            strokeOpacity: 0.7,
+            fillColor: '#e74c3c',
+            fillOpacity: 0.08,
+            zIndex: 1000,
+            map: map
+          });
+        }
       });
     });
   </script>
