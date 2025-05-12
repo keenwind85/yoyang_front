@@ -6,191 +6,7 @@
   <title>내 주변 요양시설 찾기</title>
   <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=111c602d0e830ef83899bfab32a148e6&autoload=false&libraries=services"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6/dist/umd/supabase.min.js"></script>
-  <style>
-    html, body { height: 100%; margin: 0; padding: 0; }
-    body { background: #fafbfc; }
-    #mobileOnly { display: none; }
-    #mobileRoot { display: block; }
-    @media (min-width: 601px) {
-      #mobileOnly { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 1.2em; color: #e74c3c; background: #fff; }
-      #mobileRoot { display: none; }
-    }
-    @media (max-width: 600px) {
-      #mobileOnly { display: none; }
-      #mobileRoot { display: block; }
-      html, body { width: 100vw; height: 100vh; overflow-x: hidden; }
-    }
-    #topBar {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 52px;
-      background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      z-index: 2000; display: flex; align-items: center; padding: 0 8px;
-    }
-    #topBar .logo-area { flex: 0 0 auto; }
-    #topBar .search-area {
-      flex: 1 1 auto; display: flex; align-items: center; margin-left: 8px;
-      width: 100%;
-      gap: 0;
-    }
-    #topBar input[type="text"] {
-      flex: 1 1 auto;
-      min-width: 0;
-      max-width: 100vw;
-      padding: 8px 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px 0 0 6px;
-      font-size: 1em;
-      outline: none;
-      transition: border 0.2s;
-      height: 38px;
-      box-sizing: border-box;
-    }
-    #topBar input[type="text"]:focus { border-color: #e74c3c; }
-    #topBar button {
-      flex: 0 0 auto;
-      height: 38px;
-      padding: 0 16px;
-      border: none;
-      background: #e74c3c;
-      color: #fff;
-      border-radius: 0 6px 6px 0;
-      font-size: 1em;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-left: -1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-    }
-    #topBar button:hover { background: #c0392b; }
-    body { padding-top: 52px; }
-    #filterBar {
-      border-bottom:1px solid #f1f1f1; margin-top: 8px; margin-bottom: 8px; padding-bottom: 0;
-      display: flex; gap: 8px; align-items: center; background: #fff; z-index:1999; position:relative;
-      overflow-x: auto;
-      overflow-y: hidden;
-      white-space: nowrap;
-      -webkit-overflow-scrolling: touch;
-      padding-left: 8px; padding-right: 8px;
-      scrollbar-width: none;
-    }
-    #filterBar::-webkit-scrollbar { display: none; }
-    .filter-btn {
-      background:#f3f4f6; color:#444; border:none; border-radius:7px; padding:9px 18px; font-size:1em; font-weight:500; cursor:pointer; transition:background 0.18s, color 0.18s;
-      white-space: nowrap;
-      margin-right: 2px;
-      flex: 0 0 auto;
-      display: inline-block;
-    }
-    .filter-btn.selected {
-      background:#e74c3c; color:#fff;
-    }
-    #map { width: 100vw; height: calc(100vh - 52px - 44px - 8px); margin-top: 0; }
-    .facility-modal {
-      position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
-      background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.2);
-      min-width: 80vw; max-width: 96vw; z-index: 1000; padding: 18px 10px;
-      display: none; flex-direction: column; gap: 10px;
-    }
-    .facility-modal.active { display: flex; }
-    .modal-close { position: absolute; right: 12px; top: 8px; font-size: 20px; cursor: pointer; }
-    .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 6px; }
-    .modal-section { margin-bottom: 4px; font-size: 0.98em; }
-    .modal-label { color: #888; font-size: 0.95em; margin-right: 4px; }
-    .modal-value { font-weight: 500; }
-    .modal-staff { display: flex; flex-wrap: wrap; gap: 6px; }
-    .modal-bg { position: fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.18); z-index:999; display:none; }
-    .modal-bg.active { display:block; }
-    #kakaoPlaceThumb { max-width:90vw; border-radius:10px; display:none; margin-top:16px; }
-    #searchResults {
-      position:absolute; left:0; right:0; top:40px; background:#fff; border:1px solid #ddd; border-radius:0 0 8px 8px; box-shadow:0 4px 16px rgba(0,0,0,0.07); z-index:3000; display:none; max-height:180px; overflow-y:auto; font-size:0.98em;
-    }
-    .search-result-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f1f1; }
-    .search-result-item:last-child { border-bottom:none; }
-    @media (max-width: 400px) {
-      #topBar { height: 46px; padding: 0 6px; }
-      #topBar input[type="text"] { font-size: 0.95em; }
-      #topBar button { font-size: 0.95em; padding: 6px 10px; }
-      #filterBar { gap: 3px; }
-      .filter-btn { padding: 5px 7px; font-size: 0.93em; }
-      .facility-modal { min-width: 96vw; padding: 10px 2px; }
-    }
-    #radiusControl {
-      position: fixed;
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      z-index: 2100;
-      background: rgba(255,255,255,0.95);
-      border-radius: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 6px 10px;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      font-size: 0.98em;
-    }
-    .radius-btn {
-      background: #f3f4f6;
-      color: #444;
-      border: none;
-      border-radius: 12px;
-      padding: 6px 14px;
-      font-size: 1em;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.18s, color 0.18s;
-    }
-    .radius-btn.selected {
-      background: #e74c3c;
-      color: #fff;
-    }
-    #modalSummaryBg {
-      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.18); z-index: 3001; display: none;
-    }
-    #facilitySummaryModal {
-      position: fixed; left: 0; right: 0; bottom: 0;
-      width: 100vw; max-width: 100vw;
-      min-height: 18vh; max-height: 32vh;
-      background: #fff;
-      border-radius: 18px 18px 0 0;
-      box-shadow: 0 -2px 16px rgba(0,0,0,0.13);
-      z-index: 3002;
-      display: none;
-      padding: 18px 18px 14px 18px;
-      box-sizing: border-box;
-      transition: transform 0.18s;
-      animation: slideUpSummary 0.22s cubic-bezier(.4,1.4,.6,1) 1;
-    }
-    @keyframes slideUpSummary {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
-    #facilitySummaryModal .summary-close {
-      position: absolute; right: 16px; top: 14px; font-size: 1.5em; color: #888; cursor: pointer; font-weight: 600;
-    }
-    #facilitySummaryModal .summary-title {
-      font-size: 1.18em; font-weight: bold; margin-bottom: 7px; color: #222;
-    }
-    #facilitySummaryModal .summary-row {
-      margin-bottom: 7px; color: #444; font-size: 1em;
-    }
-    #facilitySummaryModal .summary-label {
-      color: #888; margin-right: 4px; font-size: 0.97em;
-    }
-    #facilitySummaryModal .summary-staff {
-      color: #2563eb; font-size: 0.98em; margin-bottom: 7px;
-    }
-    #facilitySummaryModal .summary-detail-btn {
-      display: block; width: 100%; background: #e74c3c; color: #fff; border: none;
-      border-radius: 8px; padding: 12px 0; font-size: 1.08em; font-weight: 600;
-      margin-top: 10px; cursor: pointer; transition: background 0.18s;
-    }
-    #facilitySummaryModal .summary-detail-btn:hover {
-      background: #c0392b;
-    }
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="mobileOnly">모바일 환경에서만 이용 가능합니다.</div>
@@ -202,13 +18,13 @@
     ">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
     </div>
-    <div id="topBar" style="padding: 0 8px;">
-      <div class="logo-area" style="flex: 0 0 auto; display: flex; align-items: center;">
-        <img src="/logo.png" alt="로고" style="height:32px;vertical-align:middle; margin-right:8px;" />
+    <div id="topBar">
+      <div class="logo-area">
+        <img src="/logo.png" alt="로고">
       </div>
-      <div class="search-area" style="flex: 1 1 auto; display: flex; align-items: center; gap: 0; width: 100%;">
-        <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off" style="flex:1 1 auto; min-width:0; max-width:100vw; padding:8px 10px; border:1px solid #ddd; border-radius:6px 0 0 6px; font-size:1em; outline:none; height:38px; box-sizing:border-box;" />
-        <button id="searchBtn" style="height:38px; padding:0 16px; border:none; background:#e74c3c; color:#fff; border-radius:0 6px 6px 0; font-size:1em; cursor:pointer; margin-left:-1px; display:flex; align-items:center; justify-content:center; white-space:nowrap;">검색</button>
+      <div class="search-area">
+        <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off">
+        <button id="searchBtn">검색</button>
         <div id="searchResults"></div>
       </div>
     </div>
