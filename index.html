@@ -151,6 +151,11 @@
 <body>
   <div id="mobileOnly">모바일 환경에서만 이용 가능합니다.</div>
   <div id="mobileRoot">
+    <button id="getLocationBtn" style="
+      display:block; margin:18px auto 0 auto; background:#2563eb; color:#fff; font-size:1.08rem; font-weight:600;
+      border:none; border-radius:8px; padding:12px 32px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+      <span style="font-size:1.2em; vertical-align:middle;">📍</span> 내 위치로 찾기
+    </button>
     <div id="topBar">
       <div class="logo-area">
         <img src="/logo.png" alt="로고" style="height:28px;vertical-align:middle;" />
@@ -460,14 +465,16 @@
             }
           });
         }
-        // 진입 시 바로 위치 요청
-        try {
-          const loc = await getUserLocation();
-          showMap(loc.lat, loc.lng, true);
-          updateUserLocation(loc.lat, loc.lng);
-        } catch (e) {
-          handleLocationError();
-        }
+        // 내 위치로 찾기 버튼 클릭 시 위치 요청
+        document.getElementById('getLocationBtn').onclick = async function() {
+          try {
+            const loc = await getUserLocation();
+            showMap(loc.lat, loc.lng, true);
+            updateUserLocation(loc.lat, loc.lng);
+          } catch (e) {
+            handleLocationError();
+          }
+        };
         function handleLocationError() {
           alert('위치 정보를 가져올 수 없습니다. 기본 위치(서울시청)로 이동합니다.');
           const defaultLat = 37.5665;
