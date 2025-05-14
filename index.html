@@ -25,13 +25,40 @@
       </div>
     </div>
     <div id="filterBar">
-      <button class="filter-btn" data-type="all">전체</button>
-      <button class="filter-btn" data-type="A01,A02,A03,A04,A05,AAA">노인요양 시설</button>
-      <button class="filter-btn" data-type="B01,C01">방문요양</button>
-      <button class="filter-btn" data-type="B02,C02">방문목욕</button>
-      <button class="filter-btn" data-type="B03,C03,B04,C04">주야간 보호</button>
-      <button class="filter-btn" data-type="B05,C05">방문간호</button>
-      <button class="filter-btn" data-type="C06">복지용구</button>
+      <button class="filter-btn type-all" data-type="all">
+         <img class="icon-off" src="assets/images/side-all-off.png">
+        <img class="icon-on" src="assets/images/side-all-on.png">
+        <span>전체</span>
+      </button>
+      <button class="filter-btn type-01" data-type="A01,A02,A03,A04,A05,AAA">
+        <img class="icon-off" src="assets/images/side-facility-off.png">
+        <img class="icon-on" src="assets/images/side-facility-on.png">
+        <span>노인요양 시설</span>
+      </button>
+      <button class="filter-btn type-02" data-type="B01,C01">
+        <img class="icon-off" src="assets/images/side-home-off.png">
+        <img class="icon-on" src="assets/images/side-home-on.png">
+        <span>방문요양</span>
+      </button>
+      <button class="filter-btn type-03" data-type="B02,C02">
+        <img class="icon-off" src="assets/images/side-bath-off.png">
+        <img class="icon-on" src="assets/images/side-bath-on.png">
+        <span>방문목욕</span>
+      </button>
+      <button class="filter-btn type-04" data-type="B03,C03,B04,C04">
+        <img class="icon-off" src="assets/images/side-dnn-off.png">
+        <img class="icon-on" src="assets/images/side-dnn-on.png">
+        <span>주야간 보호</span>
+      </button>
+      <button class="filter-btn type-05" data-type="B05,C05">
+        <img class="icon-off" src="assets/images/side-nurse-off.png">
+        <img class="icon-on" src="assets/images/side-nurse-on.png">
+        <span>방문간호</span></button>
+      <button class="filter-btn type-06" data-type="C06">
+        <img class="icon-off" src="assets/images/side-wheelchair-off.png">
+        <img class="icon-on" src="assets/images/side-wheelchair-on.png">
+        <span>복지용구</span>
+      </button>
     </div>
     <div id="map"></div>
     <div id="radiusControl">
@@ -513,12 +540,12 @@
               .ilike('admin_name', `%${keyword}%`)
               .limit(10);
             if (error || !data || data.length === 0) {
-              searchResults.innerHTML = '<div style="padding:14px 18px; color:#888;">검색 결과가 없습니다</div>';
+              searchResults.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color:#A19E9B; font-size: 1.125rem;">검색 결과가 없습니다</div>';
               searchResults.style.display = 'block';
               return;
             }
             searchResults.innerHTML = data.map(fac =>
-              `<div class="search-result-item" data-id="${fac.id}" style="padding:12px 18px; cursor:pointer; border-bottom:1px solid #f1f1f1; font-size:1.07em;">${fac.admin_name}</div>`
+              `<div class="search-result-item" data-id="${fac.id}"><i class="fa-solid fa-location-dot"></i> ${fac.admin_name}</div>`
             ).join('');
             searchResults.style.display = 'block';
           }, 200);
