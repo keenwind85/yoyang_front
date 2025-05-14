@@ -4,40 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>내 주변 요양시설 찾기</title>
+  <link rel="stylesheet" href="assets/css/fonts.css">
+  <link rel="stylesheet" href="assets/css/reset.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://kit.fontawesome.com/e5e8e6a8a0.js" crossorigin="anonymous"></script>
   <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=111c602d0e830ef83899bfab32a148e6&autoload=false&libraries=services"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6/dist/umd/supabase.min.js"></script>
-  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="mobileOnly">모바일 환경에서만 이용 가능합니다.</div>
   <div id="mobileRoot">
-    <div id="myLocationBtn" style="
-      position: absolute; right: 16px; top: 64px; z-index: 2200;
-      background: #fff; border: 1px solid #ddd; border-radius: 8px; width: 38px; height: 38px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; padding:0;
-    ">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <div id="myLocationBtn">
+      <svg width="24" height="22" viewBox="0 0 24 24" fill="none" stroke="#3182F6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
     </div>
     <div id="topBar">
-      <div class="logo-area">
-        <img src="/logo.png" alt="로고">
-      </div>
       <div class="search-area">
         <input type="text" id="searchInput" placeholder="시설명, 주소 등 검색" autocomplete="off">
-        <button id="searchBtn">검색</button>
+        <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
         <div id="searchResults"></div>
       </div>
     </div>
-    <div id="filterBar" style="margin-top: 8px; margin-bottom: 8px; padding-bottom: 0; border-bottom:1px solid #f1f1f1; display:flex; gap:8px; align-items:center; background:#fff; z-index:1999; position:relative; overflow-x:auto; overflow-y:hidden; white-space:nowrap; -webkit-overflow-scrolling:touch; padding-left:8px; padding-right:8px; scrollbar-width:none;">
+    <div id="filterBar">
       <button class="filter-btn" data-type="all">전체</button>
-      <button class="filter-btn" data-type="A01,A02,A03,A04,A05,AAA">노인요양시설</button>
+      <button class="filter-btn" data-type="A01,A02,A03,A04,A05,AAA">노인요양 시설</button>
       <button class="filter-btn" data-type="B01,C01">방문요양</button>
       <button class="filter-btn" data-type="B02,C02">방문목욕</button>
-      <button class="filter-btn" data-type="B03,C03,B04,C04">주야간보호</button>
+      <button class="filter-btn" data-type="B03,C03,B04,C04">주야간 보호</button>
       <button class="filter-btn" data-type="B05,C05">방문간호</button>
       <button class="filter-btn" data-type="C06">복지용구</button>
     </div>
-    <div style="height:8px;"></div>
     <div id="map"></div>
     <div id="radiusControl">
       <button class="radius-btn" data-radius="1000">1km</button>
@@ -150,8 +145,8 @@
             console.log('거리:', dist);
             // if (dist > radius) continue;
             const markerImage = new kakao.maps.MarkerImage(
-              'assets/marker_carehome.svg',
-              new kakao.maps.Size(40, 40),
+              'assets/images/carehome.svg',
+              new kakao.maps.Size(42, 42),
               { offset: new kakao.maps.Point(20, 40) }
             );
             const marker = new kakao.maps.Marker({
@@ -187,9 +182,9 @@
               // 모달 내용 생성
               const modal = document.getElementById('facilitySummaryModal');
               modal.innerHTML = `
-                <span class="summary-close">&times;</span>
-                <div class="summary-title">${fac.admin_name}</div>
-                <div class="summary-row"><span class="summary-label">설립 연차:</span>${year}</div>
+                <span class="summary-close"><i class="fa-solid fa-xmark"></i></span>
+                <h2 class="summary-title">${fac.admin_name}</h2>
+                <div class="summary-row"><span class="summary-label">설립 연차</span>${year}</div>
                 <div class="summary-row summary-staff">${staffStrs.length > 0 ? staffStrs.join(' / ') : '직원 정보 없음'}</div>
                 <button class="summary-detail-btn">상세보기</button>
               `;
@@ -208,20 +203,7 @@
             markers.push(marker);
             // === 시설명 커스텀 오버레이 추가 ===
             const overlayContent = `
-              <div class="facility-name-overlay" data-id="${fac.id}" style="
-                background:rgba(255,255,255,0.95);
-                border-radius:6px;
-                padding:2px 8px;
-                font-size:14px;
-                color:#222;
-                box-shadow:0 2px 6px rgba(0,0,0,0.07);
-                border:1px solid #eee;
-                margin-top:4px;
-                white-space:nowrap;
-                cursor:pointer;
-                pointer-events:auto;
-                user-select:none;
-                ">
+              <div class="facility-name-overlay" data-id="${fac.id}">
                 ${fac.admin_name}
               </div>
             `;
@@ -293,12 +275,12 @@
             userPulse.style.height = '32px';
             userPulse.style.pointerEvents = 'none';
             userPulse.style.zIndex = '3000';
-            userPulse.innerHTML = '<div id="pulseDot" style="width:16px;height:16px;background:#e74c3c;border-radius:50%;position:absolute;left:8px;top:8px;box-shadow:0 0 8px #e74c3c88;"></div>';
+            userPulse.innerHTML = '<div id="pulseDot" style="width:16px;height:16px;background:#DA2F36;border-radius:50%;position:absolute;left:8px;top:8px;box-shadow:0 0 6px #FF706C;"></div>';
             mapContainer.appendChild(userPulse);
             let scale = 1, growing = true;
             function animatePulse() {
-              scale += (growing ? 0.03 : -0.03);
-              if (scale > 1.4) growing = false;
+              scale += (growing ? 0.005 : -0.005);
+              if (scale > 1.2) growing = false;
               if (scale < 1.0) growing = true;
               userPulse.firstChild.style.transform = `scale(${scale})`;
               requestAnimationFrame(animatePulse);
@@ -632,10 +614,10 @@
           radiusCircle = new kakao.maps.Circle({
             center: new kakao.maps.LatLng(lat, lng),
             radius: radius,
-            strokeWeight: 2,
-            strokeColor: '#e74c3c',
+            strokeWeight: 1,
+            strokeColor: '#FF9992',
             strokeOpacity: 0.7,
-            fillColor: '#e74c3c',
+            fillColor: '#FF9992',
             fillOpacity: 0.08,
             zIndex: 1000,
             map: map
