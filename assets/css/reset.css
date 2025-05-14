@@ -37,6 +37,8 @@
   --line-height-body1: 24px;
   --line-height-body2: 20px;
   --line-height-caption: 16px;
+
+  --shadow-base : 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 html, body, div, span, applet, object, iframe,
