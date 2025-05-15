@@ -11,55 +11,60 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-  <div id="backBar" class="backBar">
-    <button id="backBtn" style="
-      background:none; border:none; color:#2563eb; font-size:1.15rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; padding:0;">
-      <span style="font-size:1.3em;">&#8592;</span> 뒤로가기
-    </button>
+  <header class="header">
+      <div class="header-innder">
+        <button id="backBtn" style="
+          background:none; border:none; color:#2563eb; font-size:1.15rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; padding:0;">
+          <span style="font-size:1.3em;">&#8592;</span> 뒤로가기
+        </button>
+      </div>
+  </header>
+  
+  <main>
+    <section class="detail-section">
+      <div id="loading" class="loading">로딩중...</div>
+      <div id="error" class="error-message" style="display:none;"></div>
+      <div id="content" style="display:none;">
+        <h1 id="facilityName"></h1>
+        <div class="info-row">
+          <div class="info-label"><i class="fa-solid fa-seedling"></i> 설립 연차</div>
+          <div class="info-value" id="facilityYear"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label"><i class="fa-solid fa-house"></i> 시설 종류</div>
+          <div class="info-value" id="facilityType"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label"><i class="fa-solid fa-user"></i> 시설 직원</div>
+          <div class="info-value staff-list" id="staffList"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label"><i class="fa-solid fa-bus"></i> 교통 정보</div>
+          <div class="info-value" id="transportInfo"></div>
+        </div>
+        <div class="info-row">
+          <div class="info-label"><i class="fa-solid fa-square-parking"></i> 주차 정보</div>
+          <div class="info-value" id="parkingInfo"></div>
+        </div>
+      </div>
+    </section>
+    
+    
+    <section id="blogReviewSection" class="detail-section">
+      <h3 class="sub-tit">네이버 블로그 리뷰</h3>
+      <div id="blogReviewList"></div>
+      <div id="blogModalBg" style="display:none;"></div>
+      <div id="blogModal" style="display:none;">
+        <span id="blogModalClose" style="position:absolute;right:18px;top:10px;font-size:2em;color:#fff;z-index:11;cursor:pointer;">&times;</span>
+        <iframe id="blogModalFrame" src="" style="width:100vw;max-width:600px;height:90vh;border:none;z-index:10;display:block;margin:0 auto;background:#fff;"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <div class="call-btn">
+      <a id="callBtn" href="#"><i class="fa-solid fa-phone"></i> 상담 전화 연결</a>
   </div>
-  <div class="container">
-    <div id="loading" class="loading">로딩중...</div>
-    <div id="error" class="error-message" style="display:none;"></div>
-    <div id="content" style="display:none;">
-      <h1 id="facilityName"></h1>
-      <div class="info-row">
-        <div class="info-label">설립 연차</div>
-        <div class="info-value" id="facilityYear"></div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">시설 종류</div>
-        <div class="info-value" id="facilityType"></div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">시설 직원</div>
-        <div class="info-value staff-list" id="staffList"></div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">교통 정보</div>
-        <div class="info-value" id="transportInfo"></div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">주차 정보</div>
-        <div class="info-value" id="parkingInfo"></div>
-      </div>
-    </div>
-  </div>
-  <div style="text-align:center; margin-top:32px;">
-    <a id="callBtn" href="#" style="
-      display:inline-block; background:#e74c3c; color:#fff; font-size:1.13rem; font-weight:600;
-      border-radius:8px; padding:14px 38px; text-decoration:none; box-shadow:0 2px 8px rgba(0,0,0,0.07);
-      transition:background 0.2s; margin-top:8px; letter-spacing:0.5px;"
-      >상담 전화 연결</a>
-  </div>
-  <div id="blogReviewSection" style="margin-top:32px;">
-    <h2 style="font-size:1.1em; color:#2563eb;">네이버 블로그 리뷰</h2>
-    <div id="blogReviewList" style="font-size:0.98em; color:#444;"></div>
-    <div id="blogModalBg" style="display:none;"></div>
-    <div id="blogModal" style="display:none;">
-      <span id="blogModalClose" style="position:absolute;right:18px;top:10px;font-size:2em;color:#fff;z-index:11;cursor:pointer;">&times;</span>
-      <iframe id="blogModalFrame" src="" style="width:100vw;max-width:600px;height:90vh;border:none;z-index:10;display:block;margin:0 auto;background:#fff;"></iframe>
-    </div>
-  </div>
+
   <script>
     const supabase = window.supabase.createClient(
       'https://ecryblreqspjhmfpyjdn.supabase.co',
@@ -200,7 +205,7 @@
                   <div class="blog-info">
                     <div class="blog-title">${item.title.replace(/<[^>]+>/g, '')}</div>
                     <div class="blog-desc">${item.description.replace(/<[^>]+>/g, '')}</div>
-                    <div class="blog-meta">${item.bloggername} · ${item.postdate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</div>
+                    <div class="blog-meta-wrap"><div class="blog-meta">${item.bloggername} </div><span class="blog-date"> · ${item.postdate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</span></div>
                   </div>
                 </div>
               `;
@@ -215,13 +220,13 @@
               };
             });
           } else {
-            blogList.innerHTML = '<div style="color:#aaa;">해당 시설 주소(일부)가 포함된 블로그 리뷰가 없습니다.</div>';
+            blogList.innerHTML = '<div style="color: var(--gray-600); text-align: center; word-break: keep-all;">해당 시설 주소(일부)가 포함된 블로그 리뷰가 없습니다.</div>';
           }
         } else {
-          blogList.innerHTML = '<div style="color:#aaa;">관련 블로그 리뷰가 없습니다.</div>';
+          blogList.innerHTML = '<div style="color: var(--gray-600); text-align: center; word-break: keep-all;">관련 블로그 리뷰가 없습니다.</div>';
         }
       } catch (e) {
-        document.getElementById('blogReviewList').innerHTML = '<div style="color:#aaa;">블로그 리뷰를 불러올 수 없습니다.</div>';
+        document.getElementById('blogReviewList').innerHTML = '<div style="color: var(--gray-600); text-align: center; word-break: keep-all;">블로그 리뷰를 불러올 수 없습니다.</div>';
       }
     }
     // 블로그 모달 닫기
